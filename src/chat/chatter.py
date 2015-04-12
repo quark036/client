@@ -21,6 +21,7 @@
 
 
 from PyQt5 import QtCore
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import QNetworkRequest
@@ -29,7 +30,6 @@ from chat._avatarWidget import avatarWidget
 from chat import user2name
 from fa.replay import replay
 import util
-import fa
 import client
 
 
@@ -247,24 +247,24 @@ class Chatter(QTableWidgetItem):
     def setChatUserColor(self, username):
         if self.lobby.client.isFriend(username):
             if self.elevation in self.lobby.OPERATOR_COLORS:
-                self.setTextColor(QtGui.QColor(self.lobby.client.getColor("friend_mod")))
+                self.setTextColor(QColor(self.lobby.client.getColor("friend_mod")))
                 return
-            self.setTextColor(QtGui.QColor(self.lobby.client.getColor("friend")))
+            self.setTextColor(QColor(self.lobby.client.getColor("friend")))
             return
         if self.elevation in self.lobby.OPERATOR_COLORS:
-            self.setTextColor(QtGui.QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
+            self.setTextColor(QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
             return
         if self.name in self.lobby.client.colors :
-            self.setTextColor(QtGui.QColor(self.lobby.client.getColor(self.name)))
+            self.setTextColor(QColor(self.lobby.client.getColor(self.name)))
             return
-        self.setTextColor(QtGui.QColor(self.lobby.client.getUserColor(self.name)))
+        self.setTextColor(QColor(self.lobby.client.getUserColor(self.name)))
 
 
     def update(self):
         self.userInfo.update()
 
     def joinChannel(self):
-        channel, ok = QInputDialog.getText(self.lobby.client, "QInputDialog.getText()", "Channel :", QtGui.QLineEdit.Normal)
+        channel, ok = QInputDialog.getText(self.lobby.client, "QInputDialog.getText()", "Channel :", QLineEdit.Normal)
         if ok and channel != '':
             self.lobby.client.joinChannel(self.name, channel)
 

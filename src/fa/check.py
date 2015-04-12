@@ -19,20 +19,17 @@
 import sys
 import os
 import logging
-
 from PyQt5 import QtGui
+
 from PyQt5.QtWidgets import *
 
 from fa.mods import checkMods
 from fa.path import writeFAPathLua, validatePath
 from fa.wizards import Wizard
-from fa.game_version import GameVersion
 from fa.binary import Updater
-from git import Repository
-
-import mods
+import fa.mods
 import fa.path
-from config import Settings
+
 
 logger = logging.getLogger(__name__)
 

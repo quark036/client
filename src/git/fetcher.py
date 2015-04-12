@@ -1,6 +1,6 @@
 __author__ = 'Sheeo'
 
-from PyQt4.QtCore import *
+from PyQt5.QtCore import *
 
 import pygit2
 

@@ -15,11 +15,16 @@ sys.path.insert(0, "lib/pygit2")
 
 import pytest
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtGui import QGuiApplication
 
 @pytest.fixture(scope="function")
 def application(qtbot, request):
-    return QtGui.qApp
+    return QGuiApplication.instance()
+
+@pytest.fixture(scope="function")
+def qApp(qtbot, request):
+    return QGuiApplication.instance()
 
 @pytest.fixture(scope="function")
 def signal_receiver(application):

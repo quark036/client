@@ -23,7 +23,7 @@
 import os
 import time
 
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QStyledItemDelegate, QStyle, QTreeWidgetItem
 
@@ -57,34 +57,34 @@ class ReplayItemDelegate(QStyledItemDelegate):
         #painter.fillRect(option.rect.left()+8-1, option.rect.top()+8-1, iconsize.width(), iconsize.height(), QColor("#202020"))
 
         #Icon
-        icon.paint(painter, option.rect.adjusted(5-2, -2, 0, 0), QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        icon.paint(painter, option.rect.adjusted(5-2, -2, 0, 0), Qt.AlignLeft|Qt.AlignVCenter)
         
         #Frame around the icon
 #        pen = QPen()
 #        pen.setWidth(1);
 #        pen.setBrush(QColor("#303030"));  #FIXME: This needs to come from theme.
-#        pen.setCapStyle(QtCore.Qt.RoundCap);
+#        pen.setCapStyle(Qt.RoundCap);
 #        painter.setPen(pen)
 #        painter.drawRect(option.rect.left()+5-2, option.rect.top()+5-2, iconsize.width(), iconsize.height())
 
         #Description
         painter.translate(option.rect.left() + iconsize.width() + 10, option.rect.top()+10)
-        clip = QtCore.QRectF(0, 0, option.rect.width()-iconsize.width() - 10 - 5, option.rect.height())
+        clip = QRectF(0, 0, option.rect.width()-iconsize.width() - 10 - 5, option.rect.height())
         html.drawContents(painter, clip)
   
         painter.restore()
         
 
     def sizeHint(self, option, index, *args, **kwargs):
-        clip = index.model().data(index, QtCore.Qt.UserRole)
+        clip = index.model().data(index, Qt.UserRole)
         self.initStyleOption(option, index)
         html = QTextDocument()
         html.setHtml(option.text)
         html.setTextWidth(240)
         if clip :
-            return QtCore.QSize(215, clip.height)
+            return QSize(215, clip.height)
         else :
-            return QtCore.QSize(215, 35)
+            return QSize(215, 35)
 
 
 
@@ -292,7 +292,7 @@ class ReplayItem(QTreeWidgetItem):
         menu.popup(QCursor.pos())
         
     def downloadReplay(self):
-        QDesktopServices.openUrl(QtCore.QUrl(self.url))
+        QDesktopServices.openUrl(QUrl(self.url))
 
     def display(self, column):
         if column == 0 :
@@ -301,9 +301,9 @@ class ReplayItem(QTreeWidgetItem):
             return self.viewtext   
  
     def data(self, column, role):
-        if role == QtCore.Qt.DisplayRole:
+        if role == Qt.DisplayRole:
             return self.display(column)  
-        elif role == QtCore.Qt.UserRole :
+        elif role == Qt.UserRole :
             return self
         return super(ReplayItem, self).data(column, role)
  

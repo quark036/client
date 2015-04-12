@@ -16,17 +16,13 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-
-
-
-
-from SkillCalculator import *
-from Numerics.BasicMath import *
-from PlayersRange import *
-from TeamsRange import *
-from RankSorter import *
-from RatingContainer import *
-from PairwiseComparison import *
+from .SkillCalculator import *
+from .Numerics.BasicMath import *
+from .PlayersRange import *
+from .TeamsRange import *
+from .RankSorter import *
+from .RatingContainer import *
+from .PairwiseComparison import *
 from .DrawMargin import *
 from .TruncatedGaussianCorrectionFunctions import *
 

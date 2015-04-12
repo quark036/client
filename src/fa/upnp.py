@@ -26,7 +26,6 @@ Created on Mar 22, 2012
 @author: thygrrr
 '''
 import sys
-import util
 
 import logging
 logger= logging.getLogger(__name__)

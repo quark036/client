@@ -42,12 +42,13 @@ elif os.path.isdir("../lib"):
 if os.path.isdir("lib/pygit2"):
     sys.path.insert(0, os.path.abspath("lib/pygit2"))
 
-import config
 import ctypes
 
 from PyQt5.QtCore import *
+from PyQt5.QtNetwork import *
 from PyQt5.QtWidgets import *
 
+from faftools.api import initialize_faftools_api
 import util
 
 # Set up crash reporting
@@ -102,6 +103,10 @@ if __name__ == '__main__':
     logger.info(">>> --------------------------- Application Launch")
     app = QApplication(sys.argv)
     app.setWindowIcon(util.icon("window_icon.png", True))
+
+    # Setup faftools api NAM
+    nam = QNetworkAccessManager()
+    initialize_faftools_api(nam,'localhost:8080')
 
     # Make a python interpreter timer,
     # so that python events (exceptions) get processed.

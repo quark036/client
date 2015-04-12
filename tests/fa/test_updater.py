@@ -1,7 +1,8 @@
 __author__ = 'Thygrrr'
 
 from fa import updater
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
+from PyQt5.QtWidgets import *
 import pytest
 
 
@@ -15,19 +16,19 @@ class NoOpThread(QtCore.QThread):
 
 
 def test_updater_is_a_dialog(application):
-    assert isinstance(updater.UpdaterProgressDialog(None), QtGui.QDialog)
+    assert isinstance(updater.UpdaterProgressDialog(None), QDialog)
 
 
 def test_updater_has_progress_bar_game_progress(application):
-    assert isinstance(updater.UpdaterProgressDialog(None).gameProgress, QtGui.QProgressBar)
+    assert isinstance(updater.UpdaterProgressDialog(None).gameProgress, QProgressBar)
 
 
 def test_updater_has_progress_bar_map_progress(application):
-    assert isinstance(updater.UpdaterProgressDialog(None).mapProgress, QtGui.QProgressBar)
+    assert isinstance(updater.UpdaterProgressDialog(None).mapProgress, QProgressBar)
 
 
 def test_updater_has_progress_bar_mod_progress(application):
-    assert isinstance(updater.UpdaterProgressDialog(None).mapProgress, QtGui.QProgressBar)
+    assert isinstance(updater.UpdaterProgressDialog(None).mapProgress, QProgressBar)
 
 
 def test_updater_has_method_append_log(application):
@@ -71,7 +72,7 @@ def test_updater_hides_and_accepts_if_all_watches_are_finished(application):
 
     application.processEvents()
     assert not u.isVisible()
-    assert u.result() == QtGui.QDialog.Accepted
+    assert u.result() == QDialog.Accepted
 
 
 def test_updater_does_not_hide_and_accept_before_all_watches_are_finished(application):
@@ -89,5 +90,5 @@ def test_updater_does_not_hide_and_accept_before_all_watches_are_finished(applic
 
     application.processEvents()
     assert u.isVisible()
-    assert not u.result() == QtGui.QDialog.Accepted
+    assert not u.result() == QDialog.Accepted
 

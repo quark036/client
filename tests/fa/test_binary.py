@@ -1,5 +1,5 @@
-from PyQt4.QtCore import pyqtSlot
-from PyQt4 import QtCore
+from PyQt5.QtCore import pyqtSlot
+from PyQt5 import QtCore
 
 import bsdiff4
 import pytest
@@ -89,8 +89,8 @@ def test_patch_directory_contents_patches_files(tmpdir, application):
     import hashlib
     tmpdir.join("a").write("aaa")
     patchdir = tmpdir.mkdir("patchdir")
-    patchdir.join(hashlib.md5("aaa").hexdigest()).write(bsdiff4.diff("aaa", "PATCHED"), "wb")
-    post_patch_verify = {"a": hashlib.md5("PATCHED").hexdigest()}
+    patchdir.join(hashlib.md5(b"aaa").hexdigest()).write(bsdiff4.diff("aaa", "PATCHED"), "wb")
+    post_patch_verify = {"a": hashlib.md5(b"PATCHED").hexdigest()}
     updater = binary.Updater(application)
     updater.patch_directory_contents(post_patch_verify, str(patchdir), str(tmpdir))
     assert tmpdir.join("a").read() == "PATCHED"
@@ -101,8 +101,8 @@ def test_patch_directory_contents_raises_patch_failed_on_signature_mismatch(tmpd
         import hashlib
         tmpdir.join("a").write("aaa")
         patchdir = tmpdir.mkdir("patchdir")
-        patchdir.join(hashlib.md5("aaa").hexdigest()).write(bsdiff4.diff("aaa", "PATCHED"), "wb")
-        post_patch_verify = {"a": hashlib.md5("won't match").hexdigest()}
+        patchdir.join(hashlib.md5(b"aaa").hexdigest()).write(bsdiff4.diff("aaa", "PATCHED"), "wb")
+        post_patch_verify = {"a": hashlib.md5(b"won't match").hexdigest()}
         updater = binary.Updater(application)
         updater.patch_directory_contents(post_patch_verify, str(patchdir), str(tmpdir))
 
@@ -111,8 +111,8 @@ def test_patch_directory_contents_does_not_touch_files_without_patch(tmpdir, app
     import hashlib
     tmpdir.join("a").write("aaa")
     patchdir = tmpdir.mkdir("patchdir")
-    patchdir.join(hashlib.md5("bbb").hexdigest()).write(bsdiff4.diff("bbb", "PATCHED"), "wb")
-    post_patch_verify = {"a": hashlib.md5("aaa").hexdigest()}
+    patchdir.join(hashlib.md5(b"bbb").hexdigest()).write(bsdiff4.diff("bbb", "PATCHED"), "wb")
+    post_patch_verify = {"a": hashlib.md5(b"aaa").hexdigest()}
     updater = binary.Updater(application)
     updater.patch_directory_contents(post_patch_verify, str(patchdir), str(tmpdir))
     assert tmpdir.join("a").read() == "aaa"
@@ -123,7 +123,7 @@ def test_patch_directory_contents_raises_patch_failed_on_mismatching_untouched_f
         import hashlib
         tmpdir.join("a").write("aaa")
         patchdir = tmpdir.mkdir("patchdir")
-        post_patch_verify = {"a": hashlib.md5("won't match").hexdigest()}
+        post_patch_verify = {"a": hashlib.md5(b"won't match").hexdigest()}
         updater = binary.Updater(application)
         updater.patch_directory_contents(post_patch_verify, str(patchdir), str(tmpdir))
 

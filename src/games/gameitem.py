@@ -16,18 +16,18 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-import os, copy
+import os
+import copy
+from PyQt5 import QtCore
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import QIcon, QColor, QPen, QTextDocument
 from PyQt5.QtWidgets import *
 
-from PyQt5 import QtCore
-
 from fa import maps
 from trueSkill.GameInfo import GameInfo
 import util
-from games.moditem import mod_invisible, mods
+from games.moditem import mods
 from trueSkill.Team import Team
 from trueSkill.TrueSkill.FactorGraphTrueSkillCalculator import FactorGraphTrueSkillCalculator
 from trueSkill.Rating import Rating
@@ -211,8 +211,8 @@ class GameItem(QListWidgetItem):
 
         self.uid        = message.get('id', 0)
         self.title      = message['Title']
-        self.host       = message['host']['username']
-        self.hoster     = message['host']
+        self.host       = message['Host']['username']
+        self.hoster     = message['Host']
         self.teams      = {}
         self.observers  = []
         self.access     = message.get('access', 'public')

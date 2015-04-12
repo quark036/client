@@ -16,20 +16,20 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-from git import Repository
-
 __author__ = 'Thygrrr'
 
-
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore
 import os
-import util
-import bsdiff4
 import shutil
-import sys
 import json
 import logging
 import hashlib
+
+from PyQt5.QtWidgets import *
+import bsdiff4
+
+import util
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ REPO_URL = "https://github.com/FAForever/binary-patch.git"
 
 from util import settings
 
-class PatchFailedError(StandardError):
+class PatchFailedError(Exception):
     pass
 
 def make_counter(start=0):
@@ -74,11 +74,11 @@ class Updater(QtCore.QObject):
         if not os.path.exists(destination_path):
             shutil.mkdirs(destination_path)
 
-        for source_name, destination_name in copy_rename.iteritems():
+        for source_name, destination_name in copy_rename.items():
             logger.info("Copying " + os.path.join(source_path, source_name))
             shutil.copyfile(os.path.join(source_path, source_name), os.path.join(destination_path, destination_name or source_name))
             self.progress_value.emit(count())
-            QtGui.QApplication.processEvents()
+            QApplication.processEvents()
 
     def log(self, text):
         self.progress_log.emit("Game: " + text)
@@ -89,14 +89,14 @@ class Updater(QtCore.QObject):
         self.log(operation)
         self.progress_maximum.emit(maximum)
         self.progress_reset.emit()
-        QtGui.QApplication.processEvents()
+        QApplication.processEvents()
 
 
     def patch_directory_contents(self, post_patch_verify, patch_data_directory=os.path.join(util.REPO_DIR, REPO_NAME, "bsdiff4"), bin_dir=util.BIN_DIR):
         count = make_counter()
         self.prepare_progress("Patching Install", len(post_patch_verify))
 
-        for file_name, expected_md5 in post_patch_verify.iteritems():
+        for file_name, expected_md5 in post_patch_verify.items():
             with open(os.path.join(bin_dir, file_name), "rb+") as source_file:
                 file_data = source_file.read()
                 file_md5 = hashlib.md5(file_data).hexdigest()
@@ -127,7 +127,7 @@ class Updater(QtCore.QObject):
                 raise PatchFailedError("MD5 mismatch for " + file_name)
 
             self.progress_value.emit(count())
-            QtGui.QApplication.processEvents()
+            QApplication.processEvents()
 
 
     def verify_directory_contents(self, post_patch_verify, bin_dir=util.BIN_DIR):
@@ -137,7 +137,7 @@ class Updater(QtCore.QObject):
         okay = True
         logger.info("Verifying bin directory " + bin_dir)
         try:
-            for file_name, expected_md5 in post_patch_verify.iteritems():
+            for file_name, expected_md5 in post_patch_verify.items():
                 with open(os.path.join(bin_dir, file_name), "rb+") as source_file:
                     file_data = source_file.read()
                     file_md5 = hashlib.md5(file_data).hexdigest()
@@ -149,13 +149,13 @@ class Updater(QtCore.QObject):
                     okay  = False
 
                 self.progress_value.emit(count())
-                QtGui.QApplication.processEvents()
+                QApplication.processEvents()
 
             for existing_file in os.listdir(bin_dir):
                 if not existing_file in post_patch_verify:
                     logger.warn(existing_file + " is not in verify list.")
 
-        except StandardError, err:
+        except Exception as err:
             logger.error("Error verifying files: " + str(err))
             okay = False
 
@@ -194,7 +194,7 @@ class Updater(QtCore.QObject):
             self.prepare_progress("Creating fresh install.")
             try:
                 self.patch_forged_alliance(gamepath)
-            except PatchFailedError, pfe:
+            except PatchFailedError as pfe:
                 self.failed.emit(str(pfe))
 
         self.finished.emit()

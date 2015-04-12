@@ -2,7 +2,7 @@ __author__ = 'Thygrrr'
 
 import pytest
 from fa import maps
-from PyQt4 import QtGui, QtNetwork, QtCore
+from PyQt5 import QtGui, QtNetwork, QtCore
 
 TESTMAP_NAME = "faf_test_map"
 

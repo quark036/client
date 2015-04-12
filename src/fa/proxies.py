@@ -20,12 +20,12 @@ import functools
 import logging
 import time
 import random
-import json
-
 from PyQt5 import QtCore, QtNetwork
+
 from PyQt5.QtWidgets import QMessageBox
 
 from config import Settings
+
 
 FAF_PROXY_HOST = Settings.get('HOST', 'PROXY')
 FAF_PROXY_PORT = Settings.get('PORT', 'PROXY')
@@ -40,7 +40,7 @@ class proxies(QtCore.QObject):
 
         self.client = parent
 
-        self.reconn_escape_prefix = QtCore.QByteArray.fromHex("ffffffffffffffffffffffffffffff");
+        self.reconn_escape_prefix = QtCore.QByteArray.fromHex(b"ffffffffffffffffffffffffffffff");
         self.p2p_game_launched = 0
         self.p2p_bottleneck_ = 0
         self.p2p_state_debug_timestamp = time.time()
@@ -132,7 +132,7 @@ class proxies(QtCore.QObject):
 
     def p2p_all_disconnected_time_min(self):
         min_t = 100000
-        for k, p2p in self.p2p_by_public.iteritems():
+        for k, p2p in self.p2p_by_public.items():
             if self.p2p_is_fully_connected(p2p):
                 t = time.time() - p2p['pub_last_recv'];
                 if t < min_t: min_t = t
@@ -171,7 +171,7 @@ class proxies(QtCore.QObject):
                     # to only contain active game connections (since
                     # we are currently attempting reconnects)
                     while count <= count_to:
-                        for dest_inter, p2p_inter in self.p2p_by_public.iteritems():
+                        for dest_inter, p2p_inter in self.p2p_by_public.items():
                             if self.p2p_is_fully_connected(p2p_inter):
                                 if count == count_to:
                                     p = QtCore.QByteArray(self.reconn_escape_prefix)
@@ -222,7 +222,7 @@ class proxies(QtCore.QObject):
                 if p2p['reconnect_attempts'] < self.P2P_DIRECT_RECONNECT_ATTEMPTS:
                     self.p2p_try_reconnect(p2p, 0)
             elif self.p2p_game_launched and self.p2p_all_disconnected_time_min() > 10:
-                for k, p2p in self.p2p_by_public.iteritems():
+                for k, p2p in self.p2p_by_public.items():
                     if self.p2p_is_eligible_for_reconnect(p2p):
                         p2p['reconnect_attempts'] = 0
                         p2p['ind_reconnect_attempts'] = 0
@@ -231,7 +231,7 @@ class proxies(QtCore.QObject):
                 self.p2p_successful_reconnects = 0
         if self.p2p_want_dump_state and time.time() - self.p2p_state_debug_timestamp > 20 or time.time() - self.p2p_state_debug_timestamp > 180:
             self.p2p_state_debug_timestamp = time.time()
-            for dbg_dest, dbg_p2p in self.p2p_by_public.iteritems():
+            for dbg_dest, dbg_p2p in self.p2p_by_public.items():
                 self.p2p_dump_peer(dbg_p2p);
             self.p2p_want_dump_state = 0
 
@@ -315,7 +315,7 @@ class proxies(QtCore.QObject):
                 # message. on the second leg, when the third party forwards this
                 # reconnect-by-intermediary message it includes the originator IP:port
                 # of this message in its reconnect-by-intermediary-2 message
-                for k, p2p in self.p2p_by_public.iteritems():
+                for k, p2p in self.p2p_by_public.items():
                     if p2p['public_addr_qt'] != host or p2p['public_port'] != port:
                         self.__logger.info("passing on reconn-by-intermediary to " + p2p['public_addr'] + ":" + str(p2p['public_port']))
                         p = QtCore.QByteArray(self.reconn_escape_prefix)
@@ -343,7 +343,7 @@ class proxies(QtCore.QObject):
                 found = 0
                 update_dest_old = None
                 update_dest_new = None
-                for dest, p2p in self.p2p_by_public.iteritems():
+                for dest, p2p in self.p2p_by_public.items():
                     if 'their_reconn_tag' in p2p and p2p['their_reconn_tag'] == tag:
                         found = 1
                         if p2p['public_addr_qt'] != sender_host or p2p['public_port'] != sender_port:
@@ -379,7 +379,7 @@ class proxies(QtCore.QObject):
 
                 update_dest_old = None
                 update_dest_new = None
-                for dest, p2p_other in self.p2p_by_public.iteritems():
+                for dest, p2p_other in self.p2p_by_public.items():
                     if 'their_reconn_tag' in p2p_other:
                         if p2p_other['their_reconn_tag'] == dgram.mid(16, 8):
                             p2p_other['public_addr'] = host.toString()
@@ -496,7 +496,7 @@ class proxies(QtCore.QObject):
         remove_pub = [ ]
         remove_loc = [ ]
         
-        for pub, p2p in self.p2p_by_public.iteritems():
+        for pub, p2p in self.p2p_by_public.items():
             if p2p['peeruid'] == uid:
                 if not connected and p2p['connected']:
                     remove_pub.append(pub)
@@ -508,7 +508,7 @@ class proxies(QtCore.QObject):
             self.__logger.error("request to set connected state " + str(connected) + " for UID " + str(uid) + " but we have " + str(num_found) + " connections to peer")
         for p in remove_pub:
             # rely on the garbage collector, maybe fixme
-            self.__logger.info("remove p2p peer " + p);
+            self.__logger.info("remove p2p peer " + p)
             del self.p2p_by_public[p]
         for l in remove_loc:
             del self.p2p_by_local["127.0.0.1:" + str(l)]

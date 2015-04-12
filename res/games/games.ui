@@ -1278,16 +1278,6 @@ p, li { white-space: pre-wrap; }
        </widget>
       </item>
      </layout>
-     <zorder>teamInvitationsListWidget</zorder>
-     <zorder>teamManagerListWidget</zorder>
-     <zorder>labelTeamManagement</zorder>
-     <zorder>labelTeamManagementHint</zorder>
-     <zorder>labelTeamManagementHint2</zorder>
-     <zorder>teamFaction</zorder>
-     <zorder>teamSearch</zorder>
-     <zorder>TeamMapSelectButton</zorder>
-     <zorder>verticalSpacer_2</zorder>
-     <zorder>leaveTeamButton</zorder>
     </widget>
    </item>
   </layout>

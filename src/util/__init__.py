@@ -16,12 +16,16 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-from PyQt5.QtGui import *
-from PyQt5.QtMultimedia import *
-
 import sys
 import os
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
+
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtMultimedia import *
+
 
 # Developer mode flag
 def developer():
@@ -140,7 +144,7 @@ if not os.path.isdir(SOUND_DIR):
 if not os.path.isdir(VOICES_DIR):
     os.makedirs(VOICES_DIR)
 
-from PyQt5 import uic, QtCore
+from PyQt5 import QtCore
 import shutil
 import hashlib
 import re
@@ -165,8 +169,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from PyQt4 import uic
-path = os.path.join(os.path.dirname(sys.argv[0]), "PyQt4.uic.widget-plugins")
+from PyQt5 import uic
+path = os.path.join(os.path.dirname(sys.argv[0]), "PyQt5.uic.widget-plugins")
 uic.widgetPluginPath.append(path)
 
 def clearDirectory(directory, confirm=True):
@@ -195,7 +199,7 @@ __themedir = None
 settings = QtCore.QSettings("ForgedAllianceForever", "FA Lobby")
 
 # Public Network Access Manager
-from PyQt4 import QtNetwork
+from PyQt5 import QtNetwork
 network = QtNetwork.QNetworkAccessManager()
 
 def clean_slate(path):
@@ -618,8 +622,8 @@ def now():
     return _dateDummy.now()
 
 
-from crash import CrashDialog
-from report import ReportDialog
+from .crash import CrashDialog
+from .report import ReportDialog
 
 from PyQt5.QtCore import QEventLoop
 

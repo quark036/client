@@ -1,12 +1,13 @@
 __author__ = "Thygrrr, humbly treading in the shadow of sheeo's awesomeness"
 
 import os
+import logging
+
 import git
 import util
-import logging
-from collections import namedtuple
-
 from git import Version
+
+from fa.mod import Mod
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def is_featured_mod(mod):
 
 
 def featured_versions_to_repo_tag(featured_versions_hash):
-    return str(reduce(max, featured_versions_hash.itervalues(), 0))
+    return str(max(0, *featured_versions_hash.values()))
 
 
 def replay_info_to_featured_mod_version(replay_info):

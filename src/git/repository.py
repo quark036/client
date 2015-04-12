@@ -1,15 +1,14 @@
 __author__ = 'Thygrrr'
 
 import os
-
 import re
-import pygit2
-from urlparse import urlparse
-
+from urllib.parse import urlparse
 import logging
+
+import pygit2
 logger = logging.getLogger(__name__)
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore
 
 
 class Repository(QtCore.QObject):

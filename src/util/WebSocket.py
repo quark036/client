@@ -8,10 +8,6 @@ logger = logging.getLogger(__name__)
 
 # Don't touch anything. It works.
 
-import json
-import socket
-import errno
-
 from PyQt5.QtCore import *
 
 import _thread

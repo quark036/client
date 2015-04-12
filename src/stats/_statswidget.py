@@ -21,17 +21,15 @@
 
 
 import time
+from PyQt5 import QtCore
+import logging
 
-from PyQt5 import QtCore, QtWebKit
 from PyQt5.QtGui import QTextDocument, QTextCursor
 from PyQt5.QtWidgets import QTabWidget, QTextBrowser
 from PyQt5.QtWebKitWidgets import *
 
 import util
 from stats import mapstat
-
-
-import logging
 logger = logging.getLogger(__name__)
 
 ANTIFLOOD = 0.1

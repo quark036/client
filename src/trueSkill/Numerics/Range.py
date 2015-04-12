@@ -16,10 +16,6 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-
-
-
-
 from sys import maxsize
 
 class Range(object):
@@ -53,7 +49,7 @@ class Range(object):
    
     @staticmethod
     def atLeast(minimumValue) :
-        return Range(minimumValue, maxint)
+        return Range(minimumValue, maxsize)
     
     #@staticmethod
     def isInRange(self, value):

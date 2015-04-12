@@ -17,11 +17,12 @@
 #-------------------------------------------------------------------------------
 
 import random
+import logging
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtNetwork import *
 
+from faftools.api.GamesService import GamesService
 import util
 from games.gameitem import GameItem, GameItemDelegate
 from games.moditem import ModItem, mod_invisible, mods
@@ -31,10 +32,6 @@ from fa import faction
 import fa
 import modvault
 import notificatation_system as ns
-
-from client.GamesService import GamesService
-
-import logging
 logger = logging.getLogger(__name__)
 
 RANKED_SEARCH_EXPANSION_TIME = 10000 #milliseconds before search radius expands
@@ -188,7 +185,7 @@ class GamesWidget(FormClass, BaseClass):
 
     def _syncGameList(self):
 
-        def _onPollError(resp):
+        def _onPollError(http_code, resp):
             QMessageBox.warning( self, "Game Listing Failed", resp['statusMessage'] )
 
             del self._poll_reply
@@ -723,7 +720,7 @@ class GamesWidget(FormClass, BaseClass):
         if fa.check.game(self.client):
             if fa.check.check(item.mod, item.mapname, None, item.mods):
                 if item.access == "password":
-                    passw, ok = QtGui.QInputDialog.getText(self.client, "Passworded game" , "Enter password :", QtGui.QLineEdit.Normal, "")
+                    passw, ok = QInputDialog.getText(self.client, "Passworded game" , "Enter password :", QLineEdit.Normal, "")
                     if ok:
                         self.client.send(dict(command="game_join", password=passw, uid=item.uid, gameport=self.client.gamePort))
                 else :

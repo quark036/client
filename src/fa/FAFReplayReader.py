@@ -1,5 +1,5 @@
 
-from PyQt4.QtCore import QIODevice, QDataStream, QByteArray
+from PyQt5.QtCore import QIODevice, QDataStream, QByteArray
 from struct import unpack
 import zlib
 import json
@@ -42,14 +42,14 @@ class FAFReplayReader(QIODevice):
         ds = QDataStream(QByteArray(self._fafheader))
         ds.setByteOrder(QDataStream.LittleEndian)
 
-        assert ds.readRawData(16) == 'FAF_REPLAY_v%03d\0' % VERSION
+        assert ds.readRawData(16) == ('FAF_REPLAY_v%03d\0' % VERSION).encode()
 
         self._scfa_header_off = ds.readUInt32()
         self._scfa_data_off = ds.readUInt32()
         self._compression = ds.readRawData(4)
         self._reserved = ds.readRawData(4)
 
-        self._fafheader = json.loads(ds.readBytes())
+        self._fafheader = json.loads(ds.readBytes().decode())
 
     def _readTarget(self, nbytes):
         data = self._target_device.read(nbytes)
@@ -77,9 +77,8 @@ class FAFReplayReader(QIODevice):
 
             self._parseFAFHeader()
             self._state = STATE_SCFAHEADER
-            return self.read(nbytes)
 
-        elif self._state == STATE_SCFAHEADER:
+        if self._state == STATE_SCFAHEADER:
             data = self._readTarget(min(self._scfa_data_off - self._pos, nbytes))
             if self._pos == self._scfa_data_off:
                 self._state = STATE_SCFADATA

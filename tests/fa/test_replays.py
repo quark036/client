@@ -1,4 +1,4 @@
-import urllib
+import urllib.request as url
 import py
 
 from os.path import join
@@ -10,10 +10,10 @@ REPLAY_v2_OUT = "2712924.scfareplay_new"
 
 tmpdir = str(py.test.ensuretemp(__name__))
 
-urllib.urlretrieve ("http://content.faforever.com/faf/vault/replay_vault/replay.php?id=2712924",
+url.urlretrieve ("http://content.faforever.com/faf/vault/replay_vault/replay.php?id=2712924",
                     join(tmpdir, REPLAY_v1))
 
-from PyQt4.QtCore import *
+from PyQt5.QtCore import *
 
 import zlib, base64
 

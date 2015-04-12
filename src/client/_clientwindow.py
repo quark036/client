@@ -18,6 +18,7 @@
 import fa
 import client.updater
 from fa.mods import checkMods
+from faftools.api.AuthService import AuthService
 
 '''
 Created on Dec 1, 2011
@@ -61,7 +62,7 @@ from fa.game_version import GameVersion
 
 from .LobbyServerContext import LobbyServerContext
 
-from .UserService import UserInfo
+from faftools.api.UserService import UserInfo
 
 from . import loginwizards
 
@@ -324,7 +325,7 @@ class ClientWindow(FormClass, BaseClass):
         self.mainGridLayout.addWidget(sizeGrip, 2, 2)
 
         # Setup progress bar
-        self.progress = QtGui.QProgressDialog()  # This needs to die
+        self.progress = QProgressDialog()  # This needs to die
 
         #Wire all important signals
         self.mainTabs.currentChanged.connect(self.mainTabChanged)
@@ -878,7 +879,7 @@ class ClientWindow(FormClass, BaseClass):
 
     @QtCore.pyqtSlot()
     def linkGitHub(self):
-        QtGui.QDesktopServices.openUrl(QtCore.QUrl(GITHUB_URL))
+        QDesktopServices.openUrl(QtCore.QUrl(GITHUB_URL))
 
     @QtCore.pyqtSlot()
     def linkForums(self):
@@ -1209,7 +1210,6 @@ class ClientWindow(FormClass, BaseClass):
 
         #Determine if a login wizard needs to be displayed and do so
         if self.autologin and self.login and self.password:
-            from .AuthService import AuthService
 
             self._login_reply = reply = AuthService.Login(self.login, self.password)
 
@@ -1525,15 +1525,15 @@ class ClientWindow(FormClass, BaseClass):
         out.writeUInt32(0)
         out.writeQString(action)
         for arg in args :
-            if type(arg) is IntType:
+            if type(arg) is int:
                 out.writeInt(arg)
             elif isinstance(arg, str):
                 out.writeQString(arg)
-            elif type(arg) is FloatType:
+            elif type(arg) is float:
                 out.writeFloat(arg)
-            elif type(arg) is ListType:
+            elif type(arg) is list:
                 out.writeQVariantList(arg)
-            elif type(arg) is DictType:
+            elif type(arg) is dict:
                 out.writeQString(json.dumps(arg))
             else:
                 logger.warn("Uninterpreted Data Type: " + str(type(arg)) + " of value: " + str(arg))
@@ -1560,15 +1560,15 @@ class ClientWindow(FormClass, BaseClass):
         out.writeQString(self.session)
 
         for arg in args :
-            if type(arg) is IntType:
+            if type(arg) is int:
                 out.writeInt(arg)
             elif isinstance(arg, str):
                 out.writeQString(arg)
-            elif type(arg) is FloatType:
+            elif type(arg) is float:
                 out.writeFloat(arg)
-            elif type(arg) is ListType:
+            elif type(arg) is list:
                 out.writeQVariantList(arg)
-            elif type(arg) is DictType:
+            elif type(arg) is dict:
                 out.writeQString(json.dumps(arg))
             elif type(arg) is QtCore.QFile :
                 arg.open(QtCore.QIODevice.ReadOnly)
@@ -1849,7 +1849,7 @@ class ClientWindow(FormClass, BaseClass):
                 getattr(self, cmd)(args)
             else:
                 logger.error("Unknown command for JSON." + command)
-                raise "StandardError"
+                raise RuntimeError("StandardError")
         except:
             raise #Pass it on to our caller, Malformed Command
 

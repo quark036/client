@@ -20,7 +20,6 @@
 
 
 
-import json
 import re
 import hashlib
 
@@ -29,8 +28,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+from faftools.api.AuthService import AuthService
 import util
-from .AuthService import AuthService
 
 
 PASSWORD_RECOVERY_URL = "http://app.faforever.com/faf/forgotPass.php"

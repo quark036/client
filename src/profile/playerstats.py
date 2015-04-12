@@ -27,6 +27,7 @@ THIS SHOULD BE REFACTORED BIG TIME :(
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 from numpy.random import randn as np
 from matplotlib.mlab import normpdf

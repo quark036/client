@@ -64,7 +64,7 @@ class GameVersion():
         if not "main_mod" in self._versions:
             raise GameVersionError("No main mod version specified")
 
-        for key, value in self._versions.iteritems():
+        for key, value in self._versions.items():
             {
                 'engine': lambda version: valid_version(version),
                 'main_mod': lambda mod: valid_main_mod(mod),
@@ -132,7 +132,7 @@ class GameVersion():
         trusted = self.engine.is_trusted
         trusted = trusted and self.main_mod.version.is_trusted
         if len(self.mods) > 0:
-            return trusted and reduce(lambda x, y: x.is_trusted and y.is_trusted, self._versions['mods'])
+            return trusted and all(map(lambda x: x.version.is_trusted, self._versions['mods']))
         else:
             return trusted
 

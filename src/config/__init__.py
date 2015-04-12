@@ -2,10 +2,10 @@ __author__ = 'Sheeo'
 
 import os
 import sys
-import version
+from . import version
 import logging
 from logging.handlers import RotatingFileHandler
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 
 _settings = QtCore.QSettings("ForgedAllianceForever", "FA Lobby")
 
@@ -56,7 +56,7 @@ v = version.get_git_version()
 if getattr(sys, 'frozen', False):
     if not version.is_prerelease_version(v):
         logging.warning("FAF version: " + repr(version.get_git_version()))
-        from production import defaults
+        from .production import defaults
         make_dirs()
         rotate = RotatingFileHandler(filename=os.path.join(Settings.get('DIR', 'LOG'), 'forever.log'),
                                      maxBytes=Settings.get('MAX_SIZE', 'LOG'),
@@ -66,7 +66,7 @@ if getattr(sys, 'frozen', False):
         logging.getLogger().setLevel(Settings.get('LEVEL', 'LOG'))
     else:
         logging.warning("FAF prerelease version: " + repr(version.get_git_version()))
-        from develop import defaults
+        from .develop import defaults
         make_dirs()
         rotate = RotatingFileHandler(filename=os.path.join(Settings.get('DIR', 'LOG'), 'forever.log'),
                                      maxBytes=Settings.get('MAX_SIZE', 'LOG'),
@@ -84,6 +84,6 @@ else:
     for k in []:
         logging.getLogger(k).setLevel(logging.DEBUG)
 
-    from develop import defaults
+    from .develop import defaults
     make_dirs()
     logging.warning("FAF development version: " + repr(version.get_git_version()))

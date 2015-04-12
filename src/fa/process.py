@@ -18,10 +18,13 @@
 
 
 import os
-from PyQt5 import QtCore, QtGui
-import util
+from PyQt5 import QtCore
+import logging
+
+from PyQt5.QtWidgets import *
 
 import config
+
 logger = logging.getLogger(__name__)
 
 __author__ = 'Thygrrr'
@@ -53,7 +56,7 @@ class Process(QtCore.QProcess):
             #prepare actual command for launching
             executable = os.path.join(config.Settings.get('BIN', 'FA'), "ForgedAllianceForever.exe")
             logger.info(arguments)
-            command = '"' + executable + '" ' + " ".join(map(lambda (k, v): '/%s "%s"' % (k, v), arguments))
+            command = '"' + executable + '" ' + " ".join(map(lambda k,v: '/%s "%s"' % (k, v), arguments))
 
             logger.info("Running FA with info: " + str(info))
             logger.info("Running FA via command: " + command)
@@ -69,7 +72,7 @@ class Process(QtCore.QProcess):
                     self.startDetached(executable, arguments)
                 return True
             else:
-                QtGui.QMessageBox.warning(None, "ForgedAllianceForever.exe", "Another instance of FA is already running.")
+                QMessageBox.warning(None, "ForgedAllianceForever.exe", "Another instance of FA is already running.")
                 return False
 
     def running(self):
@@ -77,13 +80,13 @@ class Process(QtCore.QProcess):
 
     def available(self):
         if self.running():
-            QtGui.QMessageBox.warning(QtGui.QApplication.activeWindow(), "ForgedAllianceForever.exe", "<b>Forged Alliance is already running.</b><br/>You can only run one instance of the game.")
+            QMessageBox.warning(QApplication.activeWindow(), "ForgedAllianceForever.exe", "<b>Forged Alliance is already running.</b><br/>You can only run one instance of the game.")
             return False
         return True
 
     def close(self):
         if self.running():
-            progress = QtGui.QProgressDialog()
+            progress = QProgressDialog()
             progress.setCancelButtonText("Terminate")
             progress.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
             progress.setAutoClose(False)
@@ -97,7 +100,7 @@ class Process(QtCore.QProcess):
             progress.show()
 
             while self.running() and progress.isVisible():
-                QtGui.QApplication.processEvents()
+                QApplication.processEvents()
 
             progress.close()
 

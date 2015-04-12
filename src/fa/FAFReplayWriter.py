@@ -1,5 +1,5 @@
 
-from PyQt4.QtCore import QIODevice, QDataStream, QByteArray
+from PyQt5.QtCore import QIODevice, QDataStream, QByteArray
 import zlib
 import json
 
@@ -13,7 +13,7 @@ def TryGetSCFAReplayHeader(byteArray):
     stream.setByteOrder(QDataStream.LittleEndian)
 
     def readUI8():
-        r = ord(stream.readUInt8())
+        r = stream.readUInt8()
         if stream.atEnd():
             raise NoSCFAHeader()
         return r
@@ -95,7 +95,7 @@ class FAFReplayWriter(QIODevice):
         assert isinstance(header, dict)
         self._header_given = True
 
-        self._target_device.write(b'FAF_REPLAY_v%03d\0' % VERSION)
+        self._target_device.write(('FAF_REPLAY_v%03d\0' % VERSION).encode())
 
         self._faf_header = json.dumps(header).encode()
 

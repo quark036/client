@@ -89,7 +89,6 @@ import select
 import socket
 import string
 import time
-import types
 
 VERSION = 0, 4, 8
 DEBUG = 0

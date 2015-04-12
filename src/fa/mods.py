@@ -1,9 +1,8 @@
-from PyQt5 import QtGui
+from PyQt5.QtWidgets import *
+
 import fa
 import modvault
 
-import os
-import util
 
 GIT_ROOT = "https://github.com/FAForever/"
 
@@ -55,10 +54,10 @@ def checkMods(mods):  #mods is a dictionary of uid-name pairs
             to_download.append(uid)
 
     for uid in to_download:
-        result = QtGui.QMessageBox.question(None, "Download Mod",
+        result = QMessageBox.question(None, "Download Mod",
                                             "Seems that you don't have this mod. Do you want to download it?<br/><b>" +
-                                            mods[uid] + "</b>", QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        if result == QtGui.QMessageBox.Yes:
+                                            mods[uid] + "</b>", QMessageBox.Yes, QMessageBox.No)
+        if result == QMessageBox.Yes:
             # Spawn an update for the required mod
             updater = fa.updater.Updater(uid, sim=True)
             result = updater.run()
@@ -75,7 +74,7 @@ def checkMods(mods):  #mods is a dictionary of uid-name pairs
         uids[mod.uid] = mod
     for uid in mods:
         if uid not in uids:
-            QtGui.QMessageBox.warning(None, "Mod not Found",
+            QMessageBox.warning(None, "Mod not Found",
                                       "%s was apparently not installed correctly. Please check this." % mods[uid])
             return
         actual_mods.append(uids[uid])

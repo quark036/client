@@ -2,17 +2,15 @@ __author__ = 'vytautas'
 
 import os
 from os import path
-import shutil
+import logging
 
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import *
 
 import util
-
 from client import instance as client
 
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

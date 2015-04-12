@@ -19,7 +19,7 @@
 
 import os
 import sys
-from PyQt4 import QtCore
+from PyQt5 import QtCore
 import logging
 import util
 
@@ -33,13 +33,13 @@ def steamPath():
         import _winreg
         steam_key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, "Software\\Valve\\Steam", 0, (_winreg.KEY_WOW64_64KEY + _winreg.KEY_ALL_ACCESS))
         return _winreg.QueryValueEx(steam_key, "SteamPath")[0].replace("/", "\\")
-    except StandardError, e:
+    except Exception as e:
         return None
 
 def getGameFolderFA():
     settings = QtCore.QSettings("ForgedAllianceForever", "FA Lobby")
     settings.beginGroup("ForgedAlliance")
-    gameFolderFA = unicode(settings.value("app/path"))
+    gameFolderFA = str(settings.value("app/path"))
     settings.endGroup()
     return fixFolderPathFA(gameFolderFA)
 
@@ -55,7 +55,7 @@ def setGameFolderFA(newGameFolderFA):
 def getGameFolderSC():
     settings = QtCore.QSettings("ForgedAllianceForever", "FA Lobby")
     settings.beginGroup("SupremeCommanderVanilla")
-    gameFolderSC = unicode(settings.value("app/path"))
+    gameFolderSC = str(settings.value("app/path"))
     settings.endGroup()
     return gameFolderSC
 
@@ -160,7 +160,11 @@ def typicalSupComPaths():
 def validatePath(path):
     try:
         # Supcom only supports Ascii Paths
-        if not path.decode("ascii"): return False
+        def is_ascii(s):
+            return all(ord(c) < 128 for c in s)
+
+        if not is_ascii(path):
+            return False
 
         #We check whether the base path and a gamedata/lua.scd file exists. This is a mildly naive check, but should suffice
         if not os.path.isdir(path): return False
@@ -175,7 +179,7 @@ def validatePath(path):
         return True
     except:
         _, value, _ = sys.exc_info()
-        logger.error(u"Path validation failed: " + unicode(value))
+        logger.error(u"Path validation failed: " + str(value))
         return False
 
 

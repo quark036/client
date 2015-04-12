@@ -29,26 +29,23 @@ patched, and all required files for a given mod are installed
 @author thygrrr
 """
 
-from PyQt5 import QtCore, QtNetwork
-from PyQt5.QtWidgets import *
-
 import os
-
 import time
 import shutil
-import util
 import logging
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 import sys
 import tempfile
 import json
+from PyQt5 import QtCore, QtNetwork
 
-from PyQt4 import QtGui, QtCore, QtNetwork
+from PyQt5.QtWidgets import *
 
 import fa.path
 import util
 import modvault
-
 from git.fetcher import Fetcher
 
 
@@ -61,7 +58,6 @@ debugLog = []
 FormClass, BaseClass = util.loadUiType("fa/updater/updater.ui")
 class UpdaterProgressDialog(FormClass, BaseClass):
     def __init__(self, parent):
-        FormClass.__init__(self, parent)
         BaseClass.__init__(self, parent)
         self.setupUi(self)
         self.logPlainTextEdit.setVisible(False)
@@ -82,7 +78,7 @@ class UpdaterProgressDialog(FormClass, BaseClass):
         for watch in self.watches:
             if not watch.isFinished():
                 return
-        self.done(QtGui.QDialog.Accepted)  #equivalent to self.accept(), but clearer
+        self.done(QDialog.Accepted)  #equivalent to self.accept(), but clearer
 
 
 def clearLog():
@@ -471,10 +467,10 @@ class Updater(QtCore.QObject):
         if self.result == self.RESULT_CANCEL:
             pass  #The user knows damn well what happened here.
         elif self.result == self.RESULT_PASS:
-            QtGui.QMessageBox.information(QtGui.QApplication.activeWindow(), "Installation Required",
+            QMessageBox.information(QApplication.activeWindow(), "Installation Required",
                                           "You can't play without a legal version of Forged Alliance.")
         elif self.result == self.RESULT_BUSY:
-            QtGui.QMessageBox.information(QtGui.QApplication.activeWindow(), "Server Busy",
+            QMessageBox.information(QApplication.activeWindow(), "Server Busy",
                                           "The Server is busy preparing new patch files.<br/>Try again later.")
         elif self.result == self.RESULT_FAILURE:
             failureDialog()

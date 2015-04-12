@@ -8,7 +8,7 @@ lua = LuaRuntime(unpack_returned_tuples=True)
 
 def test_default_init_values():
     f = InitFile()
-    print f.to_lua()
+    print(f.to_lua())
     lua.execute(f.to_lua())
     path = list(lua.eval('path').items())
     assert path == f.path
@@ -21,7 +21,7 @@ def test_default_init_values():
 def test_path_gets_amended():
     f = InitFile()
     f.mount('c:\\some-directory\\', '/')
-    print f.to_lua()
+    print(f.to_lua())
     lua.execute(f.to_lua())
     path = []
     for k in list(lua.eval('path').values()):

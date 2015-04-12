@@ -27,7 +27,7 @@ sip.setapi('QStringList', 2)
 sip.setapi('QList', 2)
 sip.setapi('QProcess', 2)
 
-import PyQt4.uic
+import PyQt5.uic
 from cx_Freeze import setup, Executable
 
 sys.path.insert(0, "src")
@@ -38,7 +38,7 @@ company_name = 'FAF Community'
 product_name = 'Forged Alliance Forever'
 
 import config.version as version
-import PyQt4.uic
+import PyQt5.uic
 git_version = version.get_git_version()
 msi_version = version.msi_version(git_version)
 version_file = version.write_release_version(git_version)
@@ -53,7 +53,7 @@ build_exe_options = {
     'icon': 'res/faf.ico',
     'include_msvcr': True,
     'silent': True,
-    'packages': ['util', 'sip', 'cffi', 'pycparser', 'PyQt4.uic', 'lupa', 'pygit2', 'pygit2_cffi_18eab927xbf062fb5']
+    'packages': ['util', 'sip', 'cffi', 'pycparser', 'PyQt5.uic', 'lupa', 'pygit2', 'pygit2_cffi_18eab927xbf062fb5']
 }
 
 shortcut_table = [
@@ -96,7 +96,7 @@ exe = Executable(
     base=base,
     targetName='FAForever.exe',
     icon='res/faf.ico',
-    includes=[os.path.join(os.path.dirname(PyQt4.uic.__file__), "widget-plugins"), "PyQt4.uic.widget-plugins"]
+    includes=[os.path.join(os.path.dirname(PyQt5.uic.__file__), "widget-plugins"), "PyQt5.uic.widget-plugins"]
 )
 
 setup(
@@ -112,5 +112,5 @@ ranked ladder play, and featured mods.',
     url='http://www.faforever.com',
     license='GNU General Public License, Version 3',
     options={'build_exe': build_exe_options, 'bdist_msi': bdist_msi_options},
-    executables=[exe], requires=['bsdiff4', 'sip', 'pygit2', 'PyQt4', 'cx_Freeze', 'cffi', 'py', 'faftools', 'lupa'],
+    executables=[exe], requires=['bsdiff4', 'sip', 'pygit2', 'PyQt5', 'cx_Freeze', 'cffi', 'py', 'faftools', 'lupa'],
 )

@@ -1,25 +1,25 @@
 import os
 import sys
 import tempfile
-import urllib.request, urllib.error, urllib.parse
-from PyQt5 import QtGui, QtCore
-
+import urllib.request
+import urllib.error
+import urllib.parse
+from PyQt5 import QtCore
 import logging
+
+from PyQt5.QtWidgets import *
+
 logger = logging.getLogger(__name__)
 
-
-__author__ = 'Thygrrr'
-
 def checkForUpdates():
-
     pass
 
 # This part updates the Lobby Client by downloading the latest MSI.
 def fetchClientUpdate(url):
-    result = QtGui.QMessageBox.question(None, "Update Needed", "Your version of FAF is outdated. You need to download and install the most recent version to connect and play.<br/><br/><b>Do you want to download and install the update now?</b>", QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-    if (result == QtGui.QMessageBox.Yes):
+    result = QMessageBox.question(None, "Update Needed", "Your version of FAF is outdated. You need to download and install the most recent version to connect and play.<br/><br/><b>Do you want to download and install the update now?</b>", QMessageBox.Yes, QMessageBox.No)
+    if (result == QMessageBox.Yes):
         try:
-            progress = QtGui.QProgressDialog()
+            progress = QProgressDialog()
             progress.setCancelButtonText("Cancel")
             progress.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
             progress.setAutoClose(True)
@@ -35,7 +35,7 @@ def fetchClientUpdate(url):
             progress.setMaximum(file_size)
             progress.setModal(1)
             progress.setWindowTitle("Downloading Update")
-            label = QtGui.QLabel()
+            label = QLabel()
             label.setOpenExternalLinks(True)
             progress.setLabel(label)
             progress.setLabelText('Downloading the latest version of <b>Forged Alliance Forever</b><br/><a href="' + url + '">' + url + '</a><br/>File size: ' + str(int(file_size / 1024 / 1024)) + ' MiB')
@@ -48,7 +48,7 @@ def fetchClientUpdate(url):
             block_sz = 4096
 
             while progress.isVisible():
-                QtGui.QApplication.processEvents()
+                QApplication.processEvents()
                 read_buffer = msifile.read(block_sz)
                 if not read_buffer:
                     break
@@ -67,11 +67,11 @@ def fetchClientUpdate(url):
                 logger.debug(r'Running command: ' + command)
                 subprocess.Popen(command, shell=True)
             else:
-                QtGui.QMessageBox.information(None, "Aborted", "Update download not complete.")
+                QMessageBox.information(None, "Aborted", "Update download not complete.")
                 logger.warn("MSI download not complete.")
         except:
             logger.error("Updater error: ", exc_info = sys.exc_info())
-            QtGui.QMessageBox.information(None, "Download Failed", "The file wasn't properly sent by the server. <br/><b>Try again later.</b>")
+            QMessageBox.information(None, "Download Failed", "The file wasn't properly sent by the server. <br/><b>Try again later.</b>")
 
 
 

@@ -7,7 +7,9 @@ from PyQt5.QtNetwork import *
 import util
 
 import fa
-from client import LOBBY_HOST, GAME_TEST_PORT
+from client import LOBBY_HOST
+
+GAME_TEST_PORT = 8001
 
 logger = logging.getLogger(__name__)
 

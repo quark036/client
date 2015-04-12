@@ -1,8 +1,10 @@
 from PyQt5 import QtCore
-from PyQt5.QtWebKitWidgets import *
-from PyQt5 import QtWebKit
 import logging
+
+from PyQt5.QtWebKitWidgets import *
+
 import util
+
 
 logger = logging.getLogger(__name__)
 

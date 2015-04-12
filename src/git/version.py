@@ -1,10 +1,6 @@
 __author__ = 'Sheeo'
 
-import os
-import re
-import pygit2
-
-from urlparse import urlparse
+from urllib.parse import urlparse
 import fnmatch
 import posixpath
 
@@ -93,7 +89,7 @@ class Version():
     @property
     def is_trusted(self):
         parsed_url = urlparse(self.url)
-        return len(filter(lambda url: fnmatch.fnmatch(parsed_url.hostname + parsed_url.path, url), TRUSTED_REPOS)) > 0
+        return len(list(filter(lambda url: fnmatch.fnmatch(parsed_url.hostname + parsed_url.path, url), TRUSTED_REPOS))) > 0
 
     def __repr__(self):
         return "(repo: %s,ref: %s, url: %s, hash: %s)" % (self.repo, self.ref, self.url, self.hash)

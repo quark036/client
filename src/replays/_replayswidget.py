@@ -27,7 +27,7 @@ import json
 
 from PyQt5 import QtCore, QtNetwork
 from PyQt5.QtGui import *
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 from PyQt5.QtWidgets import *
 
 import util
@@ -52,7 +52,7 @@ FormClass, BaseClass = util.loadUiType("replays/replays.ui")
 class ReplaysWidget(BaseClass, FormClass):
     SOCKET  = 11002
     HOST    = "lobby.faforever.com"
-    
+
     def __init__(self, client):
         super(BaseClass, self).__init__()
 
@@ -121,7 +121,7 @@ class ReplaysWidget(BaseClass, FormClass):
 
     def finishRequest(self, reply):
         if reply.error() != QNetworkReply.NoError:
-            QtGui.QMessageBox.warning(self, "Network Error", reply.errorString())
+            QMessageBox.warning(self, "Network Error", reply.errorString())
         else:
             faf_replay = QtCore.QFile(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
             faf_replay.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Truncate)                
@@ -607,13 +607,13 @@ class ReplaysWidget(BaseClass, FormClass):
         out.writeQString(action)
         
         for arg in args :            
-            if type(arg) is IntType:
+            if type(arg) is int:
                 out.writeInt(arg)
             elif isinstance(arg, str):
                 out.writeQString(arg)
-            elif type(arg) is FloatType:
+            elif type(arg) is float:
                 out.writeFloat(arg)
-            elif type(arg) is ListType:
+            elif type(arg) is list:
                 out.writeQVariantList(arg)
             else:
                 logger.warn("Uninterpreted Data Type: " + str(type(arg)) + " of value: " + str(arg))

@@ -21,14 +21,16 @@
 
 
 from PyQt5 import QtCore
-from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
-import util
 import os
+import logging
+
+from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from PyQt5.QtWidgets import *
+
+import util
 import fa
-from fa.replay import replay
 from tutorials.tutorialitem import TutorialItem, TutorialItemDelegate
 
-import logging
 logger = logging.getLogger(__name__)
 
 FormClass, BaseClass = util.loadUiType("tutorials/tutorials.ui")
@@ -53,7 +55,7 @@ class tutorialsWidget(FormClass, BaseClass):
         
     def finishReplay(self, reply):
         if reply.error() != QNetworkReply.NoError:
-            QtGui.QMessageBox.warning(self, "Network Error", reply.errorString())
+            QMessageBox.warning(self, "Network Error", reply.errorString())
         else:
             filename = os.path.join(util.CACHE_DIR, str("tutorial.fafreplay"))
             replay  = QtCore.QFile(filename)
@@ -62,7 +64,7 @@ class tutorialsWidget(FormClass, BaseClass):
             replay.close()
     
             fa.replay(filename, True)
-    
+
     def tutorialClicked(self, item):
 
         self.nam = QNetworkAccessManager()

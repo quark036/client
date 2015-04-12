@@ -22,12 +22,6 @@
 
 # Initialize logging system
 import logging
-import util
-
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtNetwork import *
-
 
 from config import Settings
 

@@ -5,8 +5,6 @@ from fa import check, path
 from fa.mod import Mod
 from fa.game_version import GameVersion
 from git.version import Version
-from PyQt4.QtGui import qApp
-from PyQt4.QtNetwork import QNetworkAccessManager
 
 from flexmock import flexmock
 
@@ -37,7 +35,7 @@ version_mock = flexmock(is_stable=lambda: True,
                         main_mod_repo=repo_mock)
 
 
-def test_check_game_checks_engine_version(qtbot, monkeypatch):
+def test_check_game_checks_engine_version(qtbot, qApp, monkeypatch):
     monkeypatch.setattr('fa.check.Repository', lambda p: repo_mock)
     monkeypatch.setattr('fa.check.Updater', lambda r, p: updater_mock)
     repo_mock.should_receive('has_version').with_args(TEST_ENGINE_VERSION).and_return(True).once()
@@ -45,7 +43,7 @@ def test_check_game_checks_engine_version(qtbot, monkeypatch):
     check.game(qApp, version_mock)
 
 
-def test_check_game_checks_out_engine_version(qtbot, monkeypatch):
+def test_check_game_checks_out_engine_version(qtbot, qApp, monkeypatch):
     monkeypatch.setattr('fa.check.Repository', lambda p: repo_mock)
     monkeypatch.setattr('fa.check.Updater', lambda r, p: updater_mock)
 

@@ -15,20 +15,18 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
-from fa.replay import replay
-
 import time
 import re
 import json
-
 from PyQt5 import QtCore
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+from fa.replay import replay
 import util
 from chat import user2name, logger
 from chat.chatter import Chatter
-import fa
 
 
 QUERY_BLINK_SPEED = 250

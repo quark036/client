@@ -18,24 +18,16 @@
 
 import logging
 
-from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 
-import os
-
-from PyQt4 import QtCore, QtGui
 from games.gameitem import GameItem, GameItemDelegate
 import modvault
 from fa import maps
 from fa.mod import Mod
 from fa.game_version import GameVersion
 from git.version import Version
-from config import Settings
 import util
 
-from client.GamesService import GamesService
-
-import logging
 logger = logging.getLogger(__name__)
 
 RANKED_SEARCH_EXPANSION_TIME = 10000 #milliseconds before search radius expands

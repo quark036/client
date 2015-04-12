@@ -20,7 +20,9 @@ import logging
 import string
 import sys
 from urllib.error import HTTPError
+
 import fa
+
 
 logger= logging.getLogger(__name__)
 
@@ -39,7 +41,6 @@ import shutil
 import urllib.request, urllib.error, urllib.parse
 import zipfile
 import tempfile
-import re
 
 
 VAULT_PREVIEW_ROOT = "http://content.faforever.com/faf/vault/map_previews/small/" 

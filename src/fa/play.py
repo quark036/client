@@ -1,25 +1,15 @@
-from .process import instance
-
-from fa import mods
+import os
 
 from fa.lua import InitFile
 from fa.path import getGameFolderFA
-from fa.game_version import GameVersion
-
 from .process import instance
-
 import util
-import os
+
 
 __author__ = 'Thygrrr'
 
 import logging
 logger = logging.getLogger(__name__)
-
-from PyQt5 import QtCore
-
-from . import DEFAULT_WRITE_GAME_LOG
-from . import DEFAULT_RECORD_REPLAY
 
 from config import Settings
 
@@ -66,8 +56,8 @@ def run(game_info, port, arguments=None):
     init_file.mount(str(getGameFolderFA()), '/')
 
     init_path = os.path.join(Settings.get('BIN', 'FA'), 'init_%s.lua' % game_version.main_mod.name)
-    f = file(init_path, 'w')
-    f.write(init_file.to_lua())
+    f = open(init_path, 'wb')
+    f.write(init_file.to_lua().encode())
     f.close()
 
     arguments.append(('init', init_path))
