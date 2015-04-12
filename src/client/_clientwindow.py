@@ -15,8 +15,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
-from client.updater import fetchClientUpdate
 import fa
+import client.updater
 from fa.mods import checkMods
 
 '''
@@ -36,7 +36,8 @@ from PyQt5.QtNetwork import *
 
 from client import ClientState, MUMBLE_URL, WEBSITE_URL, WIKI_URL, \
     FORUMS_URL, UNITDB_URL, SUPPORT_URL, TICKET_URL, GAME_PORT_DEFAULT, LOBBY_HOST, \
-    LOBBY_PORT, LOCAL_REPLAY_PORT, STEAMLINK_URL
+    LOBBY_PORT, LOCAL_REPLAY_PORT, STEAMLINK_URL, GITHUB_URL
+
 from client.PortTester import PortTester
 
 import logging
@@ -55,6 +56,8 @@ import time
 import os
 import random
 import notificatation_system as ns
+
+from fa.game_version import GameVersion
 
 from .LobbyServerContext import LobbyServerContext
 
@@ -252,9 +255,6 @@ class ClientWindow(FormClass, BaseClass):
         #Local Relay Server
         self.relayServer = fa.relayserver.RelayServer(self)
 
-        #Local proxy servers
-        self.proxyServer = fa.proxies.proxies(self)
-
         #stat server
         self.statsServer = secondaryServer.SecondaryServer("Statistic", 11002, self)
 
@@ -310,7 +310,7 @@ class ClientWindow(FormClass, BaseClass):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.maxNormal = False
 
-        close.clicked.connect(self.close);
+        close.clicked.connect(self.close)
         self.minimize.clicked.connect(self.showSmall)
         self.maximize.clicked.connect(self.showMaxRestore)
 
@@ -323,6 +323,8 @@ class ClientWindow(FormClass, BaseClass):
         sizeGrip = QSizeGrip(self)
         self.mainGridLayout.addWidget(sizeGrip, 2, 2)
 
+        # Setup progress bar
+        self.progress = QtGui.QProgressDialog()  # This needs to die
 
         #Wire all important signals
         self.mainTabs.currentChanged.connect(self.mainTabChanged)
@@ -330,29 +332,39 @@ class ClientWindow(FormClass, BaseClass):
 
         #Verrry important step!
         self.loadSettingsPrelogin()
+        self.loadSettings()
 
-        self.users = {}
+        #Local proxy servers
+        self.proxyServer = fa.proxies.proxies(self)
+
+        self.users = {} # User info objects
         self.urls = {}          # user game location URLs - TODO: Should go in self.players
 
         self.friends = []       # names of the client's friends
         self.foes = []       # names of the client's foes
+        self.clanlist = []      # members of clients clan
 
         self.power = 0          # current user power
         self.coloredNicknames = False
-        #Initialize the Menu Bar according to settings etc.
+        # Initialize the Menu Bar according to settings etc.
         self.initMenus()
 
-        #Load the icons for the tabs
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.whatNewTab), util.icon("client/feed.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.chatTab), util.icon("client/chat.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.gamesTab), util.icon("client/games.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.coopTab), util.icon("client/coop.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.vaultsTab), util.icon("client/mods.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.ladderTab), util.icon("client/ladder.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.tourneyTab), util.icon("client/tourney.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.livestreamTab), util.icon("client/twitch.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.replaysTab), util.icon("client/replays.png"))
-        self.mainTabs.setTabIcon(self.mainTabs.indexOf(self.tutorialsTab), util.icon("client/tutorials.png"))
+        # Load the icons for the tabs
+        tab_icons = [
+            (self.whatNewTab, "client/feed.png"),
+            (self.chatTab, "client/chat.png"),
+            (self.gamesTab, "client/games.png"),
+            (self.coopTab, "client/coop.png"),
+            (self.vaultsTab, "client/mods.png"),
+            (self.ladderTab, "client/ladder.png"),
+            (self.tourneyTab, "client/tourney.png"),
+            (self.livestreamTab, "client/twitch.png"),
+            (self.replaysTab, "client/replays.png"),
+            (self.tutorialsTab, "client/tutorials.png")
+        ]
+
+        for tab, icon in tab_icons:
+            self.mainTabs.setTabIcon(self.mainTabs.indexOf(tab), util.icon(icon))
 
         QtWebKit.QWebSettings.globalSettings().setAttribute(QtWebKit.QWebSettings.PluginsEnabled, True)
 
@@ -362,8 +374,28 @@ class ClientWindow(FormClass, BaseClass):
         self.email = None
         self.session_id = None
 
-        #for moderator
+        # For moderators
         self.modMenu = None
+
+    @QtCore.pyqtSlot(str, int, int)
+    def on_progress(self, text, current, maximum):
+        self.progress.setLabelText(text)
+        self.progress.setRange(0, maximum)
+        self.progress.setValue(current)
+
+    @QtCore.pyqtSlot()
+    def on_progress_start(self):
+        self.progress.destroy()
+        self.progress.setAutoReset(False)
+        self.progress.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
+        self.progress.setModal(0)
+        self.progress.setCancelButton(None)
+        self.progress.setWindowTitle("Downloading")
+
+    @QtCore.pyqtSlot()
+    def on_progress_stop(self):
+        self.progress.setVisible(False)
+        self.progress.close()
 
     def eventFilter(self, obj, event):
         if (event.type() == QtCore.QEvent.HoverMove):
@@ -643,8 +675,9 @@ class ClientWindow(FormClass, BaseClass):
         self.progress.show()
 
         #Important: If a game is running, offer to terminate it gently
-        self.progress.setLabelText("Closing ForgedAlliance.exe")
-        fa.instance.close()
+        self.progress.setLabelText("Closing ForgedAllianceForever.exe")
+        if fa.instance.running():
+            fa.instance.close()
 
         #Terminate Lobby Server connection
         # if self.socket.state() == QtNetwork.QTcpSocket.ConnectedState:
@@ -715,6 +748,7 @@ class ClientWindow(FormClass, BaseClass):
         self.actionLink_account_to_Steam.triggered.connect(self.linkToSteam)
         self.actionLinkWebsite.triggered.connect(self.linkWebsite)
         self.actionLinkWiki.triggered.connect(self.linkWiki)
+        self.actionLinkGitHub.triggered.connect(self.linkGitHub)
         self.actionLinkForums.triggered.connect(self.linkForums)
         self.actionLinkUnitDB.triggered.connect(self.linkUnitDB)
 
@@ -791,7 +825,7 @@ class ClientWindow(FormClass, BaseClass):
 
     @QtCore.pyqtSlot()
     def switchPath(self):
-        fa.updater.Wizard(self).exec_()
+        fa.wizards.Wizard(self).exec_()
 
     @QtCore.pyqtSlot()
     def switchPort(self):
@@ -841,6 +875,10 @@ class ClientWindow(FormClass, BaseClass):
     @QtCore.pyqtSlot()
     def linkWiki(self):
         QDesktopServices.openUrl(QtCore.QUrl(WIKI_URL))
+
+    @QtCore.pyqtSlot()
+    def linkGitHub(self):
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(GITHUB_URL))
 
     @QtCore.pyqtSlot()
     def linkForums(self):
@@ -949,9 +987,6 @@ class ClientWindow(FormClass, BaseClass):
 
 
     def loadSettings(self):
-        #Load settings
-        fa.loadPath()
-
         util.settings.beginGroup("window")
         geometry = util.settings.value("geometry", None)
         if geometry:
@@ -1022,73 +1057,6 @@ class ClientWindow(FormClass, BaseClass):
             self.udpTest = True
         del self._portTest
 
-    # # NOT USED
-    def testGamePort(self):
-        '''
-        Here, we test with the server if the current game port set is all right.
-        If not, we propose alternatives to the user
-        '''
-        if self.useUPnP:
-            fa.upnp.createPortMapping(self.localIP, self.gamePort, "UDP")
-
-        #binding the port
-        udpSocket = QtNetwork.QUdpSocket(self)
-        udpSocket.bind(self.gamePort)
-        udpSocket.readyRead.connect(self.processTestGameportDatagram)
-
-        if udpSocket.localPort() != self.gamePort :
-            logger.error("The game port set (%i) is not available." % self.gamePort)
-            answer = QMessageBox.warning(None, "Port Occupied", "FAF has detected that the gameport you choose is not available. Possible reasons:<ul><li><b>FAF is already running</b> (most likely)</li><li>another program is listening on port {port}</li></ul><br>If you click Apply, FAF will port {port2} for this session.".format(port=self.gamePort, port2=udpSocket.localPort()), QMessageBox.Apply, QMessageBox.Abort)
-            if answer == QMessageBox.Apply:
-                self.gamePort = udpSocket.localPort()
-
-            else :
-                udpSocket.close()
-                udpSocket.deleteLater()
-                return False
-        logger.info("The game port is now set to %i" % self.gamePort)
-        #now we try sending a packet to the server
-        logger.info("sending packet to " + LOBBY_HOST)
-
-
-        if udpSocket.writeDatagram(self.login, QtNetwork.QHostAddress(QtNetwork.QHostInfo.fromName(LOBBY_HOST).addresses ()[0]), 30351) == -1 :
-            logger.info("Unable to send UDP Packet")
-            QMessageBox.critical(self, "UDP Packet not sent !", "We are not able to send a UDP packet. <br><br>Possible reasons:<ul><li><b>Your firewall is blocking the UDP port {port}.</b></li><li><b>Your router is blocking or routing port {port} in a wrong way.</b></li></ul><br><font size='+2'>How to fix this : </font> <ul><li>Check your firewall and router. <b>More info in the wiki (Links -> Wiki)</li></b><li>You should also consider using <b>uPnP (Options -> Settings -> Gameport)</b></li><li>You should ask for assistance in the TechQuestions chat and/or in the <b>technical forum (Links -> Forums<b>)</li></ul><br><font size='+1'><b>FA will not be able to perform correctly until this issue is fixed.</b></font>".format(port=self.gamePort))
-
-
-
-        # self.progress.setCancelButtonText("Cancel")
-        # self.progress.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowTitleHint)
-        # self.progress.setAutoClose(False)
-        # self.progress.setAutoReset(False)
-        # self.progress.setModal(1)
-        # self.progress.setWindowTitle("UDP test...")
-        # self.progress.setLabelText("We are waiting for an UDP answer from the server on port %i." % (self.gamePort))
-        # self.progress.show()
-
-        timer = time.time()
-        interval = 1
-
-        while self.udpTest == False :
-            QApplication.processEvents()
-            if time.time() - timer > interval :
-                udpSocket.writeDatagram(self.login, QtNetwork.QHostAddress("91.236.254.74"), 30351)
-                interval = interval + 1
-
-            if time.time() - timer > 10 :
-                break
-
-        # self.progress.close()
-
-        udpSocket.close()
-        udpSocket.deleteLater()
-
-        if not self.udpTest:
-            logger.info("Unable to receive UDP Packet")
-            QMessageBox.critical(self, "UDP Packet not received !", "We didn't received any answer from the server. <br><br>Possible reasons:<ul><li><b>Your firewall is blocking the UDP port {port}.</b></li><li><b>Your router is blocking or routing port {port} in a wrong way/to the wrong computer.</b></li></ul><br><font size='+2'>How to fix this : </font> <ul><li>Check your firewall and router. <b>More info in the wiki (Links -> Wiki)</li></b><li>You should also consider using <b>uPnP (Options -> Settings -> Gameport)</b></li><li>You should ask for assistance in the TechQuestions chat and/or in the <b>technical forum (Links -> Forums<b>)</li></ul><br><font size='+1'><b>FA will not be able to perform correctly until this issue is fixed.</b></font>".format(port=self.gamePort))
-
-        return True
-
     def doConnect(self):
 
         if not self.replayServer.doListen(LOCAL_REPLAY_PORT):
@@ -1135,7 +1103,7 @@ class ClientWindow(FormClass, BaseClass):
     # # NOT USED
     def reconnect(self):
         ''' try to reconnect to the server'''
-       
+
         self.socket.disconnected.disconnect(self.disconnectedFromServer)
         self.socket.disconnectFromHost()
         self.socket.disconnected.connect(self.disconnectedFromServer)
@@ -1175,7 +1143,7 @@ class ClientWindow(FormClass, BaseClass):
             return False
         else:
             self.send(dict(command="hello", version=0, login=self.login, password=self.password, unique_id=self.uniqueId, local_ip=self.localIP, session=self.session))
-            #self.send(dict(command="ask_session"))    
+            #self.send(dict(command="ask_session"))
             return True
 
     # NOT USED
@@ -1331,13 +1299,10 @@ class ClientWindow(FormClass, BaseClass):
             self.actionSetAutoLogin.setChecked(self.autologin)
             self.updateOptions()
 
-            # self.progress.close()
-            #This is a triumph... I'm making a note here: Huge success!
-            #logger.debug("Starting heartbeat timer")
-            #self.heartbeatTimer.start(HEARTBEAT)
-            #self.timeout = 0            
+            self.progress.close()
             self.connected.emit()
             return True
+
         elif self.state == ClientState.REJECTED:
             logger.warning("Login rejected.")
             #seems that there isa bug in a key ..
@@ -1385,6 +1350,12 @@ class ClientWindow(FormClass, BaseClass):
         '''
         return name in self.foes
 
+    def isClanMember(self, name):
+        '''
+        Convenience function for other modules to inquire about a user's clanliness.
+        '''
+        return name in self.clanlist
+
     def isPlayer(self, name):
         '''
         Convenience function for other modules to inquire about a user's civilian status.
@@ -1418,6 +1389,8 @@ class ClientWindow(FormClass, BaseClass):
             return self.getColor("friend")
         elif name in self.foes:
             return self.getColor("foe")
+        elif name in self.clanlist:
+            return self.getColor("clan")
         elif self.isPlayer(name):
             if self.coloredNicknames:
                 return self.getRandomColor(name)
@@ -1532,8 +1505,9 @@ class ClientWindow(FormClass, BaseClass):
                 add_mods = json.loads(modstr) # should be a list
             except:
                 logger.info("Couldn't load urlquery value 'mods'")
-            if fa.check.check(url.queryItemValue("mod"), url.queryItemValue("map"), sim_mods=add_mods):
-                self.send(dict(command="game_join", uid=int(url.queryItemValue("uid")), gameport=self.gamePort))
+            if fa.check.game(self):
+                if fa.check.check(url.queryItemValue("mod"), url.queryItemValue("map"), sim_mods=add_mods):
+                    self.send(dict(command="game_join", uid=int(url.queryItemValue("uid")), gameport=self.gamePort))
 
 
     def loginWriteToFaServer(self, action, *args, **kw):
@@ -1639,7 +1613,7 @@ class ClientWindow(FormClass, BaseClass):
             #logger.info("Connection lost - Trying to reconnect.")
             #if not self.reconnect():
                 #logger.error("Unable to reconnect to the server.")
-                
+
 
     @QtCore.pyqtSlot()
     def readFromServer(self):
@@ -1744,14 +1718,14 @@ class ClientWindow(FormClass, BaseClass):
     def addFriend(self, friend):
         '''Adding a new friend by user'''
         self.friends.append(friend)
-        self.send(dict(command="social", friends=self.friends)) #LATER: Use this line instead
+        self.send(dict(command="social", friends=self.friends))  # FIXME: WTF
         #self.writeToServer("ADD_FRIEND", friend)
         self.usersUpdated.emit([friend])
 
     def addFoe(self, foe):
         '''Adding a new foe by user'''
         self.foes.append(foe)
-        self.send(dict(command="social", foes=self.foes)) #LATER: Use this line instead
+        self.send(dict(command="social", foes=self.foes))  # FIXME: WTF
         #self.writeToServer("ADD_FRIEND", friend)
         self.usersUpdated.emit([foe])
 
@@ -1759,14 +1733,14 @@ class ClientWindow(FormClass, BaseClass):
         '''Removal of a friend by user'''
         self.friends.remove(friend)
         #self.writeToServer("REMOVE_FRIEND", friend)
-        self.send(dict(command="social", friends=self.friends)) #LATER: Use this line instead
+        self.send(dict(command="social", friends=self.friends))  # FIXME: WTF
         self.usersUpdated.emit([friend])
 
     def remFoe(self, foe):
         '''Removal of a foe by user'''
         self.foes.remove(foe)
         #self.writeToServer("REMOVE_FRIEND", friend)
-        self.send(dict(command="social", foes=self.foes)) #LATER: Use this line instead
+        self.send(dict(command="social", foes=self.foes))  # FIXME: WTF
         self.usersUpdated.emit([foe])
 
 
@@ -1809,13 +1783,22 @@ class ClientWindow(FormClass, BaseClass):
             except:
                 logger.error("Error dispatching JSON: " + action, exc_info=sys.exc_info())
 
-
-
+    def serialize(self, obj):
+        if isinstance(obj, GameVersion):
+            return obj.to_dict()
+        else:
+            return GameVersion.serialize_kids(obj)
 
     #
     # JSON Protocol v2 Implementation below here
     #
-    def send(self, command, message):
+    def send(self, message):
+        data = json.dumps(message, default=self.serialize)
+        if message["command"] == "hello":
+            logger.info("Outgoing JSON Message: login.")
+        else:
+            logger.info("Outgoing JSON Message: " + data)
+        self.writeToServer(data)
 
         assert isinstance(command, str)
 
@@ -1852,7 +1835,7 @@ class ClientWindow(FormClass, BaseClass):
     def dispatch(self, command, args):
         '''
         A fairly pythonic way to process received strings as JSON messages.
-        '''     
+        '''
 
         # add a delay to the notification system
         # if 'channels' in message:
@@ -1893,8 +1876,7 @@ class ClientWindow(FormClass, BaseClass):
                 logger.warn("Server says that Updating is needed.")
                 self.progress.close()
                 self.state = ClientState.OUTDATED
-                from . import updater
-                updater.fetchClientUpdate(message["update"])
+                client.updater.fetchClientUpdate(message["update"])
 
             else:
                 logger.debug("Skipping update because this is a developer version.")
@@ -1921,7 +1903,7 @@ class ClientWindow(FormClass, BaseClass):
 
         # Important: This is the race parameter used by ladder search.
         if 'mod' in message:
-            modkey = 'mod'
+            modkey = 'mod'  # FIXME: Find out if this is not fully deprecated by now
         else:
             modkey = 'featured_mod'
 
@@ -1954,10 +1936,10 @@ class ClientWindow(FormClass, BaseClass):
 
         # Ensure we have the map
         if "mapname" in message:
-            fa.check.checkMap(message['mapname'], force=True, silent=silent)
+            fa.check.map(message['mapname'], force=True, silent=silent)
 
         if "sim_mods" in message:
-            checkMods(message['sim_mods'])
+            fa.mods.checkMods(message['sim_mods'])
 
         # Writing a file for options
         if "options" in message:
@@ -1995,10 +1977,17 @@ class ClientWindow(FormClass, BaseClass):
         version_info = message.get('version_info', {})
         version_info['lobby'] = util.VERSION_STRING
 
-        game_info = dict(uid=message['uid'], recorder=self.login, featured_mod=message[modkey], game_time=time.time(), version_info=version_info)
+        game_info = dict(uid=message['uid'],
+                         recorder=self.login,
+                         featured_mod=message[modkey],
+                         game_time=time.time(),
+                         version_info=version_info,
+                         version=GameVersion.from_dict(message.get('version')))
+
+        fa.run(game_info, self.relayServer.serverPort(), arguments)
 
 
-        fa.play(game_info, self.relayServer.serverPort(), arguments)
+
 
     def handle_coop_info(self, message):
         self.coopInfo.emit(message)
@@ -2085,6 +2074,12 @@ class ClientWindow(FormClass, BaseClass):
         name = message["login"]
         self.players[name] = message
         self.usersUpdated.emit([name])
+        # Once we have the users clan, initialise the clanlist.
+        if name == self.login:
+            self.initClanlist()
+        # If users clan not yet known, self.getUserClan(self.login) equals ''
+        if not message["clan"] == '' and message["clan"] == self.getUserClan(self.login):
+            self.clanlist.append(name)
 
 
     def handle_mod_manager(self, message):
@@ -2135,4 +2130,11 @@ class ClientWindow(FormClass, BaseClass):
             logger.info("Server has kicked you from the Lobby.")
             self.cleanup()
 
-
+    def initClanlist(self):
+        clan = self.getUserClan(self.login)
+        # Check user has a clan
+        if clan == '': return
+        
+        for name in self.players:
+            if self.getUserClan(name) == clan:
+                self.clanlist.append(name)

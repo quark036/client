@@ -228,15 +228,6 @@ class Channel(FormClass, BaseClass):
         else:
             self.chatArea.verticalScrollBar().setValue(scroll_current)
 
-    def quackerize(self, text):
-        line = []
-        words = text.split()
-        
-        for word in words :
-            line.append("qu"+ "a" * min(7,len(word))+ "ck")
-             
-        return (" ").join(line)    
- 
     @QtCore.pyqtSlot(str, str)
     def printMsg(self, name, text, scroll_forced=False):
         '''
@@ -258,13 +249,9 @@ class Channel(FormClass, BaseClass):
             avatar = None
             
             displayName = name
-
-            if self.lobby.client.isFoe(name) :
-                text = self.quackerize(text)
-
-            if chatter:
-                if chatter.clan != "":
-                    displayName = "<b>[%s]</b>%s" % (chatter.clan, name)
+            
+            if self.lobby.client.isFoe(name):
+                return
             
             if name.lower() in self.lobby.specialUserColors:
                 color = self.lobby.specialUserColors[name.lower()]

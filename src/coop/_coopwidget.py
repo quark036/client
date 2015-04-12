@@ -177,7 +177,7 @@ class CoopWidget(FormClass, BaseClass):
     
     @QtCore.pyqtSlot()
     def linkVanilla(self):    
-        fa.updater.WizardSC(self).exec_()        
+        WizardSC(self).exec_()
 
     def coopChanged(self):
         if not self.loaded:
@@ -221,7 +221,7 @@ class CoopWidget(FormClass, BaseClass):
         self.client.games.stopSearchRanked()
         self.gamemap = fa.maps.link2name(item.mapUrl)
         
-        fa.check.checkMap(self.gamemap, force=True)
+        fa.check.map(self.gamemap, force=True)
         
         # A simple Hosting dialog.
         if fa.check.check("coop"):

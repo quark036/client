@@ -18,6 +18,7 @@
 
 
 
+import urllib2
 import tempfile
 import zipfile
 import os
@@ -26,10 +27,8 @@ from PyQt5 import QtCore
 from PyQt5.QtGui import *
 
 import modvault
+from util import datetostr,strtodate,now
 import util
-
-import logging
-logger = logging.getLogger(__name__)
 
 FormClass, BaseClass = util.loadUiType("modvault/upload.ui")
 

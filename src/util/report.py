@@ -1,3 +1,25 @@
+#-------------------------------------------------------------------------------
+# Copyright (c) 2012 Gael Honorez.
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the GNU Public License v3.0
+# which accompanies this distribution, and is available at
+# http://www.gnu.org/licenses/gpl.html
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#-------------------------------------------------------------------------------
+
+
+
+
+
 import fa
 BUGREPORT_URL = 'http://thygrrr.de/faforward.php'
 BUGREPORT_USER = 'pre-login'
@@ -15,8 +37,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-HELP_URL = "http://www.faforever.com/forums/viewforum.php?f=3"
-TICKET_URL = "http://bitbucket.org/thepilot/falobby/issues"
+HELP_URL = "http://forums.faforever.com/forums/viewforum.php?f=3"
+TICKET_URL = "https://github.com/FAForever/lobby/issues"
 
 class ReportDialog(QDialog):
     def __init__(self, *args, **kwargs):
@@ -53,14 +75,14 @@ class ReportDialog(QDialog):
         box.setReadOnly(True)
         try:
             box.setFont(QFont("Lucida Console", 8))
-            box.append("\n**FAF Username:** " + BUGREPORT_USER)
-            box.append("\n**FAF Version:** " + VERSION_STRING)
-            box.append("\n**FAF Directory:** " + APPDATA_DIR)
-            box.append("\n**FA Path:** " + str(fa.gamepath))
-            box.append("\n**Home Directory:** " + PERSONAL_DIR)
-            box.append("")
-            box.append("\n**FA Forever Log (last 128 lines):**")
-            box.append("{{{")
+            box.append(u"\n**FAF Username:** " + BUGREPORT_USER)
+            box.append(u"\n**FAF Version:** " + VERSION_STRING)
+            box.append(u"\n**FAF Directory:** " + APPDATA_DIR)
+            box.append(u"\n**FA Path:** " + str(fa.path.getGameFolderFA()))
+            box.append(u"\n**Home Directory:** " + PERSONAL_DIR)
+            box.append(u"")
+            box.append(u"\n**FA Forever Log (last 128 lines):**")
+            box.append(u"{{{")
             try:
                 box.append("\n".join(readlines(LOG_FILE_FAF, False)[-128:]))
             except:

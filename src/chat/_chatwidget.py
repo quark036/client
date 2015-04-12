@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import QNetworkAccessManager
 
 from chat.irclib import SimpleIRCClient
+from config import Settings
 import util
 import fa
 from chat import user2name
@@ -39,7 +40,7 @@ import notificatation_system as ns
 
 
 IRC_PORT = 8167
-IRC_SERVER = "direct.faforever.com"
+IRC_SERVER = "irc.faforever.com"
 POLLING_INTERVAL = 300   # milliseconds between irc polls
 PONG_INTERVAL = 100000   # milliseconds between pongs
 
@@ -52,6 +53,10 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
     It manages a list of channels and dispatches IRC events (lobby inherits from irclib's client class
     '''
     def __init__(self, client, *args, **kwargs):
+        if Settings.get('USE_CHAT') is False:
+            logger.info("Disabling chat")
+            return
+
         logger.debug("Lobby instantiating.")
         BaseClass.__init__(self, *args, **kwargs)
         SimpleIRCClient.__init__(self)
@@ -325,8 +330,9 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
             if (channel.lower() in self.crucialChannels):
                 self.insertTab(1, self.channels[channel], channel)    #CAVEAT: This is assumes a server tab exists.
                 self.client.localBroadcast.connect(self.channels[channel].printRaw)
-                self.channels[channel].printAnnouncement("Welcome to Forged Alliance Forever !", "red", "+3")
-                self.channels[channel].printAnnouncement("The documentation is the wiki. Check the Links menu !", "red", "+1")
+                self.channels[channel].printAnnouncement("Welcome to Forged Alliance Forever!", "red", "+3")
+                self.channels[channel].printAnnouncement("Check out FAF development at GitHub!", "red", "+1")
+                self.channels[channel].printAnnouncement("The documentation is the wiki. Find both in the Links menu!", "red", "+1")
                 self.channels[channel].printAnnouncement("", "black", "+1")
                 self.channels[channel].printAnnouncement("", "black", "+1")
 
@@ -340,9 +346,8 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
                 self.addTab(self.channels[channel], channel)
 
 
-            if channel.lower() in self.crucialChannels: #Make the crucial channels not closeable, and make the last one the active one
+            if channel.lower() in self.crucialChannels: #Make the last crucial channel the active one
                 self.setCurrentWidget(self.channels[channel])
-                self.tabBar().setTabButton(self.currentIndex(), QTabBar.RightSide, None)
 
         username = user2name(e.source())
         self.channels[channel].addChatter(username, True)

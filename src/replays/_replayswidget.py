@@ -51,7 +51,7 @@ FormClass, BaseClass = util.loadUiType("replays/replays.ui")
 
 class ReplaysWidget(BaseClass, FormClass):
     SOCKET  = 11002
-    HOST    = "faforever.com"
+    HOST    = "lobby.faforever.com"
     
     def __init__(self, client):
         super(BaseClass, self).__init__()
@@ -120,12 +120,15 @@ class ReplaysWidget(BaseClass, FormClass):
         
 
     def finishRequest(self, reply):
-        faf_replay = QtCore.QFile(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
-        faf_replay.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Truncate)                
-        faf_replay.write(reply.readAll())
-        faf_replay.flush()
-        faf_replay.close()  
-        replay(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
+        if reply.error() != QNetworkReply.NoError:
+            QtGui.QMessageBox.warning(self, "Network Error", reply.errorString())
+        else:
+            faf_replay = QtCore.QFile(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
+            faf_replay.open(QtCore.QIODevice.WriteOnly | QtCore.QIODevice.Truncate)                
+            faf_replay.write(reply.readAll())
+            faf_replay.flush()
+            faf_replay.close()  
+            replay(os.path.join(util.CACHE_DIR, "temp.fafreplay"))
 
     def onlineTreeClicked(self, item):
         if QApplication.mouseButtons() == QtCore.Qt.RightButton :
@@ -422,7 +425,7 @@ class ReplaysWidget(BaseClass, FormClass):
 
                     url = QtCore.QUrl()
                     url.setScheme("faflive")
-                    url.setHost("faforever.com")
+                    url.setHost("lobby.faforever.com")
                     url.setPath(str(info["uid"]) + "/" + player + ".SCFAreplay")
                     url.addQueryItem("map", info["mapname"])
                     url.addQueryItem("mod", info["featured_mod"])
@@ -578,15 +581,18 @@ class ReplaysWidget(BaseClass, FormClass):
         logger.debug("Replay Vault Server: " + action)
         self.receiveJSON(action, stream)
         
-
     def receiveJSON(self, data_string, stream):
         '''
         A fairly pythonic way to process received strings as JSON messages.
         '''
-        message = json.loads(data_string)
-        cmd = "handle_" + message['command']
-        if hasattr(self.client, cmd):
-            getattr(self.client, cmd)(message)
+        try:
+            message = json.loads(data_string)
+            cmd = "handle_" + message['command']
+            if hasattr(self.client, cmd):
+                getattr(self.client, cmd)(message)
+        except ValueError as e:
+            logger.error("Error decoding json ")
+            logger.error(e)
         
         self.replayVaultSocket.disconnectFromHost()
         

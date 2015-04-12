@@ -35,10 +35,9 @@ from vault import luaparser
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 MODFOLDER = os.path.join(util.PERSONAL_DIR, "My Games", "Gas Powered Games", "Supreme Commander Forged Alliance", "Mods")
-MODVAULT_DOWNLOAD_ROOT = "http://www.faforever.com/faf/vault/"
+MODVAULT_DOWNLOAD_ROOT = "http://content.faforever.com/faf/vault/"
 
 installedMods = [] # This is a global list that should be kept intact. So it should be cleared using installedMods[:] = []
 

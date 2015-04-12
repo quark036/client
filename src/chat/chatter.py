@@ -37,8 +37,15 @@ class Chatter(QTableWidgetItem):
     SORT_COLUMN = 2
     AVATAR_COLUMN = 1
     RANK_COLUMN = 0
-    STATUS_COLUMN = 3    
-            
+    STATUS_COLUMN = 3
+
+    RANK_ELEVATION = 0
+    RANK_FRIEND = 1
+    RANK_CLAN_MEMBER = 2
+    RANK_USER = 3
+    RANK_FOE = 4
+    RANK_NONPLAYER = 5
+
     '''
     A chatter is the representation of a person on IRC, in a channel's nick list. There are multiple chatters per channel.
     There can be multiple chatters for every Player in the Client.
@@ -117,30 +124,35 @@ class Chatter(QTableWidgetItem):
     
     
     def __lt__(self, other):
-        ''' Comparison operator used for item list sorting '''        
-        
-        # Everyone is compared by operator status, operators are > everyone, just like in real life
-        # CAVEAT: This is actually arbitrary because the dict isn't guaranteed to be the 'correct' order
-        if self.elevation and other.elevation: return list(self.lobby.OPERATOR_COLORS.keys()).index(self.elevation) < list(self.lobby.OPERATOR_COLORS.keys()).index(other.elevation)
-        if self.elevation and not other.elevation: return True
-        if not self.elevation and other.elevation: return False
-        
-        # Non-Operators will be compared for friendship, foeness, and actual player (not civilian) status
-        if self.lobby.client.isFriend(self.name) and not self.lobby.client.isFriend(other.name): return True
-        if not self.lobby.client.isFriend(self.name) and self.lobby.client.isFriend(other.name): return False
-        if self.lobby.client.isFoe(self.name) and not self.lobby.client.isFoe(other.name): return True 
-        if not self.lobby.client.isFoe(self.name) and self.lobby.client.isFoe(other.name): return False        
-        if self.lobby.client.isPlayer(self.name) and not self.lobby.client.isPlayer(other.name): return True 
-        if not self.lobby.client.isPlayer(self.name) and self.lobby.client.isPlayer(other.name): return False
-        
-        # List self below all friends and above every other player 
+        ''' Comparison operator used for item list sorting '''
+        firstStatus = self.getUserRank(self)
+        secondStatus = self.getUserRank(other)
+        # if not same rank sort
+        if firstStatus != secondStatus:
+            return firstStatus < secondStatus
+
+        # List self below all friends and above every other player
         if self.name == self.lobby.client.login: return True
         if other.name == self.lobby.client.login: return False
         
         # Default: Alphabetical
         return self.name.lower() < other.name.lower()
- 
-    
+
+    def getUserRank(self, user):
+        # TODO: Add subdivision for admin?
+        if user.elevation:
+            return self.RANK_ELEVATION
+        if self.lobby.client.isFriend(user.name):
+            return self.RANK_FRIEND
+        if self.lobby.client.isClanMember(self.name):
+            return self.RANK_CLAN_MEMBER
+        if self.lobby.client.isFoe(user.name):
+            return self.RANK_FOE
+        if self.lobby.client.isPlayer(user.name):
+            return self.RANK_USER
+        return self.RANK_NONPLAYER
+
+
     def updateAvatar(self):
         if self.avatar:        
             
@@ -184,13 +196,7 @@ class Chatter(QTableWidgetItem):
             self.setText("[%s]%s" % (self.clan,self.name))
 
         # Color handling
-        if self.elevation in self.lobby.OPERATOR_COLORS:            
-            self.setForeground(QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
-        else:
-            if self.name in self.lobby.client.colors :
-                self.setForeground(QColor(self.lobby.client.getColor(self.name)))
-            else :
-                self.setForeground(QColor(self.lobby.client.getUserColor(self.name)))
+        self.setChatUserColor(self.name)
 
         # Status icon handling
         if self.name in client.instance.urls:
@@ -238,62 +244,75 @@ class Chatter(QTableWidgetItem):
                 self.rankItem.setIcon(util.icon("chat/rank/civilian.png"))
                 self.rankItem.setToolTip("IRC User")
 
+    def setChatUserColor(self, username):
+        if self.lobby.client.isFriend(username):
+            if self.elevation in self.lobby.OPERATOR_COLORS:
+                self.setTextColor(QtGui.QColor(self.lobby.client.getColor("friend_mod")))
+                return
+            self.setTextColor(QtGui.QColor(self.lobby.client.getColor("friend")))
+            return
+        if self.elevation in self.lobby.OPERATOR_COLORS:
+            self.setTextColor(QtGui.QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
+            return
+        if self.name in self.lobby.client.colors :
+            self.setTextColor(QtGui.QColor(self.lobby.client.getColor(self.name)))
+            return
+        self.setTextColor(QtGui.QColor(self.lobby.client.getUserColor(self.name)))
+
+
     def update(self):
         self.userInfo.update()
 
     def joinChannel(self):
-        channel, ok = QInputDialog.getText(self.lobby.client, "QInputDialog.getText()", "Channel :", QLineEdit.Normal, "#tournament")
+        channel, ok = QInputDialog.getText(self.lobby.client, "QInputDialog.getText()", "Channel :", QtGui.QLineEdit.Normal)
         if ok and channel != '':
             self.lobby.client.joinChannel(self.name, channel)
 
-
     def selectAvatar(self):
         avatarSelection = avatarWidget(self.lobby.client, self.name, personal = True)
-        avatarSelection.exec_()        
+        avatarSelection.exec_()
 
     def addAvatar(self):
         avatarSelection = avatarWidget(self.lobby.client, self.name)
         avatarSelection.exec_()
-        
+
     def addFriend(self):
         self.lobby.client.addFriend(self.name)
-        
-        
+
     def remFriend(self):
         self.lobby.client.remFriend(self.name)
 
     def addFoe(self):
         self.lobby.client.addFoe(self.name)
-        
-        
+
     def remFoe(self):
         self.lobby.client.remFoe(self.name)
-   
+
     def kick(self):
         pass
-    
+
     def closeFA(self):
         self.lobby.client.closeFA(self.name)
 
     def closeLobby(self):
         self.lobby.client.closeLobby(self.name)
-    
+
     def doubleClicked(self, item):
+        # filter yourself
+        if self.lobby.client.login == self.name:
+            return
         # Chatter name clicked
         if item == self:
-            if self.lobby.client.login != self.name:
-                if "Ze_PilOt" in self.name :
-                    QMessageBox.critical(None, "Message to the admin", "You are going to send a private message to the admin.<br><br>Be aware that :<ul><li><b>The admin is not a moderator.</b> Send a message to another 'white nickname' or send a message to the moderator group in the forum.</li><li>The admin <b>is not an online (technical) support</b>. If you have question or a problem, ask in the chat.</li><li><b>Reporting a problem to the admin in the chat is useless</b>. The admin won't necessary read them, and as the messages are not kept, problems are forgotten.</li></ul><br><b>If you need to report something, go to the HELP menu then Tech Support.</b><br>Be sure to read the red wall of text first.<br><br>The admin is usually receiving a lot of private message when online. That can be overwhelming or even irritating (<b>the admin goes to the chat for chilling</b> or debugging).<br><br>If your message doesn't fit in the previous categories, you may proceed.<br>You can also send him a PM in the forum!<br><br>Thanks for your understanding.", QMessageBox.Close)
-                self.lobby.openQuery(self.name, True) #open and activate query window        
+            self.lobby.openQuery(self.name, True)  # open and activate query window
 
-        elif item == self.statusItem:                                          
-            if self.lobby.client.login != self.name:
-                if self.name in client.instance.urls:
-                    url = client.instance.urls[self.name]
-                    if url.scheme() == "fafgame":
-                        self.joinInGame()
-                    elif url.scheme() == "faflive":
-                        self.viewReplay()
+        elif item == self.statusItem:
+            if self.name in client.instance.urls:
+                url = client.instance.urls[self.name]
+                if url.scheme() == "fafgame":
+                    self.lobby.client.api.joinInGame(self.name)
+                elif url.scheme() == "faflive":
+                    self.lobby.client.api.viewLiveReplay(self.name)
+
 
 
         

@@ -29,7 +29,6 @@ from PyQt5.QtWidgets import QProgressDialog, QApplication
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 def log(string):
     logger.debug(string)
@@ -48,7 +47,7 @@ class Timeout(Exception):
 class SecondaryServer(QtCore.QObject):
 
     # Network configuration
-    HOST    = "direct.faforever.com"
+    HOST    = "lobby.faforever.com"
     TIMEOUT = 20  #seconds
 
     # Return codes to expect from run()

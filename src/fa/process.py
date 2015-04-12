@@ -21,7 +21,7 @@ import os
 from PyQt5 import QtCore, QtGui
 import util
 
-import logging
+import config
 logger = logging.getLogger(__name__)
 
 __author__ = 'Thygrrr'
@@ -43,17 +43,17 @@ class Process(QtCore.QProcess):
                 if message['state'] == "playing":
                     self.info = dict(list(self.info.items()) + list(message.items()))   # don't we all love python?
                     self.info['complete'] = True
-                    logger.info("Game Info Complete: " + str(self.info))
+                    logger.warn("Deprecated game info message: " + str(self.info))
 
-
-    def run(self, info, arguments, detach=False):
+    def run(self, info, arguments, detach=False, init_file=None):
             """
             Performs the actual running of ForgedAlliance.exe
             in an attached process.
             """
             #prepare actual command for launching
-            executable = os.path.join(util.BIN_DIR, "ForgedAlliance.exe")
-            command = '"' + executable + '" ' + " ".join(arguments)
+            executable = os.path.join(config.Settings.get('BIN', 'FA'), "ForgedAllianceForever.exe")
+            logger.info(arguments)
+            command = '"' + executable + '" ' + " ".join(map(lambda (k, v): '/%s "%s"' % (k, v), arguments))
 
             logger.info("Running FA with info: " + str(info))
             logger.info("Running FA via command: " + command)
@@ -62,32 +62,24 @@ class Process(QtCore.QProcess):
                 #CAVEAT: This is correct now (and was wrong in 0.4.x)! All processes are start()ed asynchronously, startDetached() would simply detach it from our QProcess object, preventing signals/slot from being emitted.
                 self.info = info
 
-                self.setWorkingDirectory(util.BIN_DIR)
+                self.setWorkingDirectory(os.path.dirname(executable))
                 if not detach:
                     self.start(command)
                 else:
-                    self.startDetached(executable, arguments, util.BIN_DIR)
+                    self.startDetached(executable, arguments)
                 return True
             else:
-                QtGui.QMessageBox.warning(None, "ForgedAlliance.exe", "Another instance of FA is already running.")
+                QtGui.QMessageBox.warning(None, "ForgedAllianceForever.exe", "Another instance of FA is already running.")
                 return False
-
-
-    def kill(self):
-        logger.warn("Process forcefully terminated.")
-        self.kill()
-
 
     def running(self):
         return self.state() == QtCore.QProcess.Running
 
-
     def available(self):
         if self.running():
-            QtGui.QMessageBox.warning(QtGui.QApplication.activeWindow(), "ForgedAlliance.exe", "<b>Forged Alliance is already running.</b><br/>You can only run one instance of the game.")
+            QtGui.QMessageBox.warning(QtGui.QApplication.activeWindow(), "ForgedAllianceForever.exe", "<b>Forged Alliance is already running.</b><br/>You can only run one instance of the game.")
             return False
         return True
-
 
     def close(self):
         if self.running():

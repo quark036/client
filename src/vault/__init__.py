@@ -36,7 +36,7 @@ from fa import maps
 from vault import luaparser
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+
 
 class MapVault(QtCore.QObject):
     def __init__(self, client, *args, **kwargs):
@@ -67,7 +67,7 @@ class MapVault(QtCore.QObject):
         if util.themeurl("vault/style.css"):
             self.ui.settings().setUserStyleSheetUrl(util.themeurl("vault/style.css"))
 
-        self.ui.setUrl(QtCore.QUrl("http://www.faforever.com/faf/vault/maps.php?username={user}&pwdhash={pwdhash}".format(user=self.client.login, pwdhash=self.client.password)))
+        self.ui.setUrl(QtCore.QUrl("http://content.faforever.com/faf/vault/maps.php?username={user}&pwdhash={pwdhash}".format(user=self.client.login, pwdhash=self.client.password)))
         
 
         

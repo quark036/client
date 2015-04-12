@@ -1,4 +1,4 @@
-# -------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Copyright (c) 2012 Gael Honorez.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the GNU Public License v3.0
@@ -36,9 +36,7 @@ except (BaseException, IOError) as e:
 VERSION = 0  # FIXME: causes the updater to always skip.
 
 LOGFILE_MAX_SIZE = 256 * 1024  #256kb should be enough for anyone
-
-
-UNITS_PREVIEW_ROOT = "http://www.faforever.com/faf/unitsDB/icons/big/"
+UNITS_PREVIEW_ROOT = "http://content.faforever.com/faf/unitsDB/icons/big/" 
 
 #These are paths relative to the executable or main.py script
 COMMON_DIR = os.path.join(os.getcwd(), "res")
@@ -48,6 +46,9 @@ if os.name == 'nt':
     APPDATA_DIR = os.path.join(os.environ['ALLUSERSPROFILE'], "FAForever")
 else:
     APPDATA_DIR = os.path.join(os.environ['HOME'], '.FAForever')
+
+#This is used to store init_*.lua files
+LUA_DIR = os.path.join(APPDATA_DIR, "lua")
 
 #This contains the themes
 THEME_DIR = os.path.join(APPDATA_DIR, "themes")
@@ -76,6 +77,10 @@ LOG_FILE_REPLAY = os.path.join(LOG_DIR, 'replay.log')
 #This contains the game binaries (old binFAF folder) and the game mods (.faf files)
 BIN_DIR = os.path.join(APPDATA_DIR, "bin")
 GAMEDATA_DIR = os.path.join(APPDATA_DIR, "gamedata")
+REPO_DIR = os.path.join(APPDATA_DIR, "repo")
+
+if not os.path.exists(REPO_DIR):
+    os.makedirs(REPO_DIR)
 
 LOCALFOLDER = os.path.join(os.path.expandvars("%LOCALAPPDATA%"), "Gas Powered Games",
                            "Supreme Commander Forged Alliance")
@@ -111,6 +116,9 @@ if not os.path.isdir(APPDATA_DIR):
 if not os.path.isdir(PERSONAL_DIR):
     os.makedirs(PERSONAL_DIR)
 
+if not os.path.isdir(LUA_DIR):
+    os.makedirs(LUA_DIR)
+
 if not os.path.isdir(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
@@ -145,7 +153,7 @@ try:
         shutil.rmtree(LOG_DIR)
         os.makedirs(LOG_DIR)
 
-    if (os.path.isfile(LOG_FILE_FAF)):
+    if os.path.isfile(LOG_FILE_FAF):
         if os.path.getsize(LOG_FILE_FAF) > LOGFILE_MAX_SIZE:
             os.remove(LOG_FILE_FAF)
 except:
@@ -154,23 +162,12 @@ except:
 # Initialize logging system
 import logging
 
-if not developer():
-    logging.basicConfig(filename=LOG_FILE_FAF, level=logging.INFO,
-                        format='%(asctime)s %(levelname)-8s %(name)-40s %(message)s')
-else:
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(name)-40s %(message)s')
-
 logger = logging.getLogger(__name__)
 
 
-def startLogging():
-    logger.debug("Logging started.")
-
-
-def stopLogging():
-    logger.debug("Logging ended.")
-    logging.shutdown()
-
+from PyQt4 import uic
+path = os.path.join(os.path.dirname(sys.argv[0]), "PyQt4.uic.widget-plugins")
+uic.widgetPluginPath.append(path)
 
 def clearDirectory(directory, confirm=True):
     if (os.path.isdir(directory)):
@@ -196,6 +193,16 @@ __themedir = None
 
 # Public settings object
 settings = QtCore.QSettings("ForgedAllianceForever", "FA Lobby")
+
+# Public Network Access Manager
+from PyQt4 import QtNetwork
+network = QtNetwork.QNetworkAccessManager()
+
+def clean_slate(path):
+    if os.path.exists(path):
+        logger.info("Wiping " + path)
+        shutil.rmtree(path)
+    os.makedirs(path)
 
 
 def loadTheme():
@@ -586,12 +593,11 @@ def md5(file_name):
     m = hashlib.md5()
     if not os.path.isfile(file_name): return None
 
-    fd = open(file_name, "rb")
-    while True:
-        content = fd.read(1024 * 1024)
-        if not content: break
-        m.update(content)
-    fd.close()
+    with open(file_name, "rb") as fd:
+        while True:
+            content = fd.read(1024 * 1024)
+            if not content: break
+            m.update(content)
 
     return m.hexdigest()
 
@@ -612,14 +618,15 @@ def now():
     return _dateDummy.now()
 
 
-from .crash import CrashDialog
-from .report import ReportDialog
+from crash import CrashDialog
+from report import ReportDialog
 
 from PyQt5.QtCore import QEventLoop
 
 # FIXME We should deprecate out synchronous logic.
 # Note: This wait is not that bad. It yields to any and all scheduled events.
-def waitForSignal(signal):
+def waitForSignal(*signals):
     loop = QEventLoop()
-    signal.connect(loop.quit)
+    for signal in signals:
+        signal.connect(loop.quit)
     loop.exec_(QEventLoop.AllEvents | QEventLoop.WaitForMoreEvents)

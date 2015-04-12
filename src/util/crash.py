@@ -1,4 +1,4 @@
-# -------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Copyright (c) 2012 Gael Honorez.
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the GNU Public License v3.0
@@ -33,7 +33,7 @@ import traceback
 import hashlib
 
 
-HELP_URL = "http://www.faforever.com/forums/viewforum.php?f=3"
+HELP_URL = "http://forums.faforever.com/forums/viewforum.php?f=3"
 TICKET_URL = "https://github.com/FAForever/lobby/issues"
 
 class CrashDialog(QDialog):
@@ -72,7 +72,7 @@ class CrashDialog(QDialog):
             box.append("\n**FAF Username:** " + CRASH_REPORT_USER)
             box.append("\n**FAF Version:** " + VERSION_STRING)
             box.append("\n**FAF Directory:** " + APPDATA_DIR)
-            box.append("\n**FA Path:** " + str(fa.gamepath))
+            box.append("\n**FA Path:** " + str(fa.path.getGameFolderFA()))
             box.append("\n**Home Directory:** " + PERSONAL_DIR)
         except Exception:
             box.append("\n**(Exception raised while writing debug vars)**")

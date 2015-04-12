@@ -27,8 +27,6 @@
 # please add it to your top-level .gitignore file.
 
 
-__all__ = "get_git_version"
-
 import pygit2
 
 
@@ -49,11 +47,19 @@ def git_describe(repository, commit):
         for parent in repository.walk(commit, pygit2.GIT_SORT_TIME):
             if parent.hex in tag_lookup:
                 if distance == 0:
-                    return tags[parent.hex]
+                    return tag_lookup[parent.hex].replace("refs/tags/", "")
                 return '%s-%d-g%s' % (tag_lookup[parent.hex][10:], distance, commit.hex[:7])
             distance += 1
 
     return 'g' + commit.hex[:7]
+
+
+def is_development_version(version):
+    return "-" in version and not is_prerelease_version(version)
+
+
+def is_prerelease_version(version):
+    return "pre" in version or "rc" in version
 
 
 def read_release_version():
@@ -87,8 +93,13 @@ def get_git_version():
     release_version = read_release_version()
 
     # First try to get the current version using “git describe”.
-    repo = pygit2.Repository(".")
-    version = git_describe(repo, repo.head.target)
+    version = None
+
+    try:
+        repo = pygit2.Repository(".")
+        version = git_describe(repo, repo.head.target)
+    except KeyError:
+        pass
 
     # If that doesn't work, fall back on the value that's in
     # RELEASE-VERSION.

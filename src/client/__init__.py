@@ -28,52 +28,32 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtNetwork import *
 
+
+from config import Settings
+
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
 
 # Initialize all important globals
-LOBBY_HOST = 'faforever.tk'
-LOBBY_PORT = 8001
-LOCAL_REPLAY_PORT = 15000
-GAME_PORT_DEFAULT = 6112
-
-#Port on server for udp test
-GAME_TEST_PORT = 8002
-
-# Service URLs
-AUTH_SERVICE_URL = "http://faforever.tk:44343/auth"
-GAMES_SERVICE_URL = "http://faforever.tk:8080/games"
-USER_SERVICE_URL = "http://faforever.tk:8080/user"
+LOBBY_HOST = Settings.get('HOST', 'LOBBY')
+LOBBY_PORT = Settings.get('PORT', 'LOBBY')
+LOCAL_REPLAY_PORT = Settings.get('LOCAL_REPLAY_PORT', 'LOBBY')
+GAME_PORT_DEFAULT = Settings.get('GAME_PORT_DEFAULT', 'LOBBY')
 
 # Important URLs
-MUMBLE_URL = "mumble://{login}@faforever.com/Games?version=1.2.0" 
-FORUMS_URL = "http://faforever.com/forums"
+MUMBLE_URL = "mumble://{login}@mumble.faforever.com/Games?version=1.2.0" 
+FORUMS_URL = "http://forums.faforever.com/forums"
 WEBSITE_URL = "http://www.faforever.com"
-UNITDB_URL = "http://www.faforever.com/faf/unitsDB/"
-WIKI_URL = "http://www.faforever.com/mediawiki/index.php/Main_Page"
-SUPPORT_URL = "http://www.faforever.com/forums/viewforum.php?f=3"
-TICKET_URL = "https://gitreports.com/issue/FAForever/lobby"
-STEAMLINK_URL = "http://www.faforever.com/faf/steam.php"
+UNITDB_URL = "http://content.faforever.com/faf/unitsDB/"
+WIKI_URL = "http://wiki.faforever.com/mediawiki/index.php/Main_Page"
+GITHUB_URL = "https://github.com/FAForever"
+SUPPORT_URL = "http://forums.faforever.com/forums/viewforum.php?f=3"
+TICKET_URL = "http://forums.faforever.com/forums/viewforum.php?f=3"
+STEAMLINK_URL = "http://app.faforever.com/faf/steam.php"
 PASSWORD_RECOVERY_URL = "http://www.faforever.com/faf/forgotPass.php"
 NAME_CHANGE_URL = "http://www.faforever.com/faf/userName.php"
 
-
-networkAccessManager = QNetworkAccessManager()
-
-class Banana(QObject):
-    def __init__(self):
-        super(Banana, self).__init__()
-
-    def onSSLError(self, reply, errors):
-
-        ret = QMessageBox.warning( 'SSL Error', errors[0].errorString(), QMessageBox.Ignore, QMessageBox.Cancel)
-
-        if ret == QMessageBox.Ignore:
-            reply.ignoreSslErrors()
-
-banana = Banana()
-networkAccessManager.sslErrors.connect(banana.onSSLError)
 
 class ClientState:
     '''

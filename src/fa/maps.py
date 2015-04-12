@@ -23,7 +23,6 @@ from urllib.error import HTTPError
 import fa
 
 logger= logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 
@@ -43,9 +42,9 @@ import tempfile
 import re
 
 
-VAULT_PREVIEW_ROOT = "http://www.faforever.com/faf/vault/map_previews/small/" 
-VAULT_DOWNLOAD_ROOT = "http://www.faforever.com/faf/vault/"
-VAULT_COUNTER_ROOT = "http://www.faforever.com/faf/vault/map_vault/inc_downloads.php"
+VAULT_PREVIEW_ROOT = "http://content.faforever.com/faf/vault/map_previews/small/" 
+VAULT_DOWNLOAD_ROOT = "http://content.faforever.com/faf/vault/"
+VAULT_COUNTER_ROOT = "http://content.faforever.com/faf/vault/map_vault/inc_downloads.php"
 
  
 maps = { # A Lookup table for info (names, sizes, players) of the official Forged Alliance Maps
@@ -254,10 +253,10 @@ def getBaseMapsFolder():
     '''
     Returns the folder containing all the base maps for this client.
     '''
-    if fa.gamepath:
-        return os.path.join(fa.gamepath, "maps")
+    if fa.path.getGameFolderFA():
+        return os.path.join(fa.path.getGameFolderFA(), "maps")
     else:
-        return "maps" #This most likely isn't the valid maps folder, but it's the best guess.
+        return "maps" # This most likely isn't the valid maps folder, but it's the best guess.
  
  
 def getUserMapsFolder():
@@ -518,6 +517,50 @@ def preview(mapname, pixmap = False, force=False):
 
 
 
+class Downloader(QtCore.QObject):
+    progress_reset = QtCore.pyqtSignal()
+    progress_value = QtCore.pyqtSignal(int)
+    progress_maximum = QtCore.pyqtSignal(int)
+    progress_log = QtCore.pyqtSignal(str)
+    failed = QtCore.pyqtSignal(str)
+    finished = QtCore.pyqtSignal()
+
+    def __init__(self, map_name, download_root=VAULT_DOWNLOAD_ROOT, parent=None):
+        QtCore.QObject.__init__(self, parent)
+        self.map_name = map_name
+        self.url = QtCore.QUrl(download_root + name2link(map_name))
+        self.data = QtCore.QByteArray()
+        self.reply = None
+
+    @QtCore.pyqtSlot(int, int)
+    def _propagate_progress(self, value, maximum):
+        self.progress_value.emit(value)
+        self.progress_maximum.emit(maximum)
+
+    @QtCore.pyqtSlot()
+    def _read_data(self):
+        self.data.append(self.reply.readAll())
+
+    @QtCore.pyqtSlot()
+    def _save_data(self):
+
+        self.finished.emit()
+
+    @QtCore.pyqtSlot()
+    def abort(self):
+        self.reply.close()
+        self.failed.emit()
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        self.progress_reset.emit()
+        self.progress_log.emit("Downloading map " + self.map_name)
+        self.reply = util.network.get(QtNetwork.QNetworkRequest(self.url))
+        self.reply.readyRead.connect(self._read_data)
+        self.reply.finished.connect(self._save_data)
+        self.reply.downloadProgress.connect(self._propagate_progress)
+
+
 
 def downloadMap(name, silent=False):
     ''' 
@@ -587,18 +630,18 @@ def downloadMap(name, silent=False):
 
                 
             logger.debug("Successfully downloaded and extracted map from: " + url)
-        else:    
-            logger.warn("Map download cancelled for: " + url)        
+        else:
+            logger.warn("Map download cancelled for: " + url)
             return False
 
 
 
     except:
-        logger.warn("Map download or extraction failed for: " + url)        
+        logger.warn("Map download or extraction failed for: " + url)
         if sys.exc_info()[0] is HTTPError:
             logger.warning("Vault download failed with HTTPError, map probably not in vault (or broken).")
             QMessageBox.information(None, "Map not downloadable", "<b>This map was not found in the vault (or is broken).</b><br/>You need to get it from somewhere else in order to use it." )
-        else:                
+        else:
             logger.error("Download Exception", exc_info=sys.exc_info())
             QMessageBox.information(None, "Map installation failed", "<b>This map could not be installed (please report this map or bug).</b>" )
         return False

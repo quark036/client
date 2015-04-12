@@ -34,6 +34,15 @@ sip.setapi('QProcess', 2)
 
 import os
 import sys
+
+if os.path.isdir("lib"):
+    sys.path.insert(0, os.path.abspath("lib"))
+elif os.path.isdir("../lib"):
+    sys.path.insert(0, os.path.abspath("../lib"))
+if os.path.isdir("lib/pygit2"):
+    sys.path.insert(0, os.path.abspath("lib/pygit2"))
+
+import config
 import ctypes
 
 from PyQt5.QtCore import *
@@ -50,11 +59,6 @@ def excepthook(exc_type, exc_value, traceback_object):
     This exception hook will stop the app if an uncaught error occurred, regardless where in the QApplication.
     """
 
-    if exc_type is KeyboardInterrupt:
-        sys.excepthook = excepthook_original
-        QApplication.exit(0)
-        return
-
     logger.error("Uncaught exception", exc_info=(exc_type, exc_value, traceback_object))
     dialog = util.CrashDialog((exc_type, exc_value, traceback_object))
     answer = dialog.exec_()
@@ -64,8 +68,9 @@ def excepthook(exc_type, exc_value, traceback_object):
         QApplication.exit(1)
 
 
-#Override our except hook.
-sys.excepthook = excepthook
+#Override our except hook for better crash reporting for the end user.
+if not util.developer():
+    sys.excepthook = excepthook
 
 def runFAF():
     #Load theme from settings (one of the first things to be done)
@@ -92,7 +97,6 @@ if __name__ == '__main__':
     #Set up logging framework
     import logging
     logger = logging.getLogger(__name__)
-    logger.propagate = True
 
     #init application framework    
     logger.info(">>> --------------------------- Application Launch")
@@ -127,5 +131,4 @@ if __name__ == '__main__':
 
     #End the application, perform some housekeeping
     logger.info("<<< --------------------------- Application Shutdown")    
-    logging.shutdown()
 

@@ -17,18 +17,27 @@
 # -------------------------------------------------------------------------------
 
 import sys
+import os
 import logging
 
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import *
 
-import fa
 from fa.mods import checkMods
+from fa.path import writeFAPathLua, validatePath
+from fa.wizards import Wizard
+from fa.game_version import GameVersion
+from fa.binary import Updater
+from git import Repository
+
+import mods
+import fa.path
+from config import Settings
 
 logger = logging.getLogger(__name__)
-from fa import writeFAPathLua, savePath
 
-def checkMap(mapname, force=False, silent=False):
+
+def map(mapname, force=False, silent=False):
     """
     Assures that the map is available in FA, or returns false.
     """
@@ -53,36 +62,90 @@ def checkMap(mapname, force=False, silent=False):
     return True
 
 
+def featured_mod(featured_mod, version):
+    pass
 
-def check(mod, mapname=None, version=None, modVersions=None, sim_mods=None, silent=False):
-    """
-    This checks whether the game is properly updated and has the correct map.
-    """
-    logger.info("Checking FA for: " + str(mod) + " and map " + str(mapname))
 
-    if not mod:
-        QMessageBox.warning(None, "No Mod Specified", "The application didn't specify which mod to update.")
-        return False
+def sim_mod(sim_mod, version):
+    pass
 
-    if not fa.gamepath:
-        savePath(fa.updater.autoDetectPath())
 
-    while not fa.updater.validatePath(fa.gamepath):
-        logger.warn("Invalid path: " + str(fa.gamepath))
-        wizard = fa.updater.Wizard(None)
+def path(parent):
+    if not fa.path.getGameFolderFA():
+        fa.path.setGameFolderFA(fa.path.autoDetectPath())
+
+    while not validatePath(fa.path.getGameFolderFA()):
+        logger.warn("Invalid path: " + str(fa.path.getGameFolderFA()))
+        wizard = Wizard(None)
         result = wizard.exec_()
-        if not result:  # The wizard only returns successfully if the path is okay.
+        if result == QtGui.QWizard.Rejected:
             return False
 
+    logger.info("Writing fa_path.lua config file.")
+    writeFAPathLua()
+
+
+def game(parent, game_version):
+    if not game_version.is_stable:
+        logger.info("Unstable game version")
+        # TODO: Show some dialog here
+
+    if not game_version.is_trusted:
+        logger.info("Untrusted repositories")
+        # TODO: Show some dialog here
+
+    engine_repo = game_version.engine_repo
+    if not engine_repo.has_version(game_version.engine):
+        logger.info("We don't have the required engine version")
+        logger.debug("Requested version %s" % game_version.engine)
+        logger.debug("Repo: %s" % game_version.engine_repo.path)
+        return False
+    else:
+        engine_repo.checkout_version(game_version.engine)
+        updater = Updater(engine_repo, parent)
+        game_path = os.path.join(fa.path.getGameFolderFA(), 'bin')
+        if not updater.check_up_to_date(game_path):
+            updater.patch_forged_alliance(os.path.join(fa.path.getGameFolderFA(), 'bin'))
+
+    main_mod_repo = game_version.main_mod_repo
+    if not main_mod_repo.has_version(game_version.main_mod.version):
+        logger.info("We don't have the required game version")
+        return False
+    else:
+        main_mod_repo.checkout_version(game_version.main_mod.version)
+
+    return True
+
+
+def check(featured_mod, mapname=None, version=None, modVersions=None, sim_mods=None, silent=False):
+    """
+    This checks whether the mods are properly updated and player has the correct map.
+    """
+    logger.info("Checking FA for: " + str(featured_mod) + " and map " + str(mapname))
+
+    assert featured_mod
+
+    if version is None:
+        logger.fatal("Cannot update to an unknown version of FA")
+        return False
+
     # Perform the actual comparisons and updating                    
-    logger.info("Updating FA for mod: " + str(mod) + ", version " + str(version))
+    logger.info("Updating FA for mod: " + str(featured_mod) + ", version " + str(version))
 
     # Spawn an update for the required mod
-    updater = fa.updater.Updater(mod, version, modVersions, silent=silent)
+    legacy_versions, repo_versions = mods.filter_mod_versions(modVersions, mods.MOD_UID_TO_REPO)
+    legacy_featured, repo_featured = mods.filter_featured_mods(featured_mod, mods.FEATURED_MOD_TO_REPO)
 
-    result = updater.run()
+    game_updater = fa.updater.Updater(legacy_featured, version, legacy_versions, silent=silent)
+    result = game_updater.run()
 
-    updater = None  #Our work here is done
+    if repo_featured:
+        import featured
+        for featured_mod in repo_featured:
+            featured.checkout_featured_mod(featured_mod, repo_featured[featured_mod]['url'],repo_featured[featured_mod]['target'])
+
+
+    game_updater = None  #Our work here is done
 
     if result != fa.updater.Updater.RESULT_SUCCESS:
         return False
@@ -99,7 +162,7 @@ def check(mod, mapname=None, version=None, modVersions=None, sim_mods=None, sile
 
     # Now it's down to having the right map
     if mapname:
-        if not checkMap(mapname, silent=silent):
+        if not map(mapname, silent=silent):
             return False
 
     if sim_mods:

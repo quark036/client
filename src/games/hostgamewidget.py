@@ -21,16 +21,22 @@ import logging
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
 
+import os
+
+from PyQt4 import QtCore, QtGui
 from games.gameitem import GameItem, GameItemDelegate
 import modvault
 from fa import maps
+from fa.mod import Mod
+from fa.game_version import GameVersion
+from git.version import Version
+from config import Settings
 import util
 
 from client.GamesService import GamesService
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 RANKED_SEARCH_EXPANSION_TIME = 10000 #milliseconds before search radius expands
 
@@ -41,39 +47,28 @@ FormClass, BaseClass = util.loadUiType("games/host.ui")
 
 
 class HostgameWidget(FormClass, BaseClass):
-    def __init__(self, client, parent, *args, **kwargs):
-        BaseClass.__init__(self, *args, **kwargs)
+    def __init__(self, client, parent, item, versions_request, allow_map_choice):
+        BaseClass.__init__(self)
 
+        logger.debug("HostGameWidget started with: ")
+        logger.debug(item)
+        logger.debug(allow_map_choice)
+        
         self.setupUi(self)
         self.parent = parent
         
         self.parent.options = []
 
-        self.client = client
-
-        item_options = {}
-
-        if len(item_options) == 0 :
-            self.optionGroup.setVisible(False)
-        else :
-            group_layout = QVBoxLayout()
-            self.optionGroup.setLayout(group_layout)
-            
-            for option in item_options :
-                checkBox = QCheckBox(self)
-                checkBox.setText(option)
-                checkBox.setChecked(True)
-                group_layout.addWidget(checkBox)
-                self.parent.options.append(checkBox)
-        
         self.setStyleSheet(self.parent.client.styleSheet())
         
-        self.setWindowTitle ( "Hosting Game " )
-        self.titleEdit.setText ( self.parent.gamename )
-        self.passEdit.setText ( self.parent.gamepassword )
+        self.setWindowTitle("Host Game: " + item.name)
+        self.titleEdit.setText(self.parent.gamename)
+        self.passEdit.setText(self.parent.gamepassword)
         self.game = GameItem(0)
         self.gamePreview.setItemDelegate(GameItemDelegate(self))
         self.gamePreview.addItem(self.game)
+
+        self.map = ''
 
         nickname = self.parent.client.login
 
@@ -93,15 +88,21 @@ class HostgameWidget(FormClass, BaseClass):
         msg["PlayerOption"][1] = {"PlayerName": nickname,
                                   "Team": 1}
         self.game.update(self.message, self.parent.client)
-        
+
+        versions_request.done.connect(self.set_versions)
+        self.versions = []
+        self.selectedVersion = 0
+        self.versionList.setVisible(False)
+        self.gameVersionLabel.setVisible(False)
+
         i = 0
         index = 0
-        if self.parent.canChooseMap == True:
+        if allow_map_choice:
             allmaps = dict()
             for map in list(maps.maps.keys()) + maps.getUserMaps():
                 allmaps[map] = maps.getDisplayName(map)
             for (map, name) in sorted(iter(allmaps.items()), key=lambda x: x[1]):
-                if map == self.parent.gamemap :
+                if map == self.parent.gamemap:
                     index = i
                 self.mapList.addItem(name, map)
                 i = i + 1
@@ -135,7 +136,6 @@ class HostgameWidget(FormClass, BaseClass):
         self.mapList.currentIndexChanged.connect(self.mapChanged)
         self.hostButton.clicked.connect(self._onHostButtonClicked)
         self.titleEdit.textChanged.connect(self.updateText)
-        self.modList.itemClicked.connect(self.modclicked)
 
     def _onHostButtonClicked(self):
         from fa.GameSession import GameSession
@@ -164,6 +164,48 @@ class HostgameWidget(FormClass, BaseClass):
 
         self.done(0)
 
+
+    def set_versions(self, versions):
+        self.versions = versions
+        if len(versions) == 0:
+            logger.error("No versions given to hostgamewidget")
+
+        for version in versions:
+            self.versionList.addItem(version['name'], version['id'])
+
+        if len(self.versions) > 1:
+            self.versionList.setVisible(True)
+            self.gameVersionLabel.setVisible(True)
+
+
+    @property
+    def selected_game_version(self):
+        """
+        Get a GameVersion representing what was selected
+        :return: GameVersion
+        """
+        version = self.versions[self.selectedVersion]
+        logger.debug("Using")
+        logger.debug(version)
+        version_mm = Version.from_dict(version['ver_main_mod'])
+        version_mm._version['url'] = None
+        version_engine = Version.from_dict(version['ver_engine'])
+        version_engine._version['url'] = None
+        main_mod = Mod(version['name'],
+                       version['mod'],
+                       version_mm)
+        return GameVersion(version_engine,
+                           main_mod,
+                           [],
+                           self.map)
+
+    @property
+    def selected_mods(self):
+        return [self.mods[str(m.text())] for m in self.modList.selectedItems()]
+
+    def versionChanged(self, index):
+        self.selectedVersion = index
+        
     def updateText(self, text):
         self.message['Title'] = text
         self.game.update(self.message, self.parent.client)
@@ -171,23 +213,18 @@ class HostgameWidget(FormClass, BaseClass):
     def hosting(self):
         self.parent.saveGameName(self.titleEdit.text().strip())
         self.parent.saveGameMap(self.parent.gamemap)
-        if self.passCheck.isChecked() :
+        if self.passCheck.isChecked():
             self.parent.ispassworded = True
             self.parent.savePassword(self.passEdit.text())
-        else :
+        else:
             self.parent.ispassworded = False
         self.done(1)
 
     def mapChanged(self, index):
-        self.parent.gamemap = self.mapList.itemData(index)
+        self.map = self.mapList.itemData(index)
         icon = maps.preview(self.parent.gamemap, True)
         if not icon:
             icon = util.icon("games/unknown_map.png", False, True)
         #self.mapPreview.setPixmap(icon)
         self.message['mapname'] = self.parent.gamemap
         self.game.update(self.message, self.parent.client)
-
-    @QtCore.pyqtSlot(QListWidgetItem)
-    def modclicked(self, item):
-        #item.setSelected(not item.isSelected())
-        logger.debug("mod %s clicked." % str(item.text()))

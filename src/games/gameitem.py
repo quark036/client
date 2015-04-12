@@ -127,15 +127,14 @@ class GameItem(QListWidgetItem):
     def url(self, player = None):
         if not player:
             player = self.host
-            
-        from client.GamesService import GAMES_SERVICE_URL
-
+        
         if self.state == "Live":
             url = QUrl("faflive://faforever.com/games/%d/livereplay" % self.uid)
             return url
         elif self.state == "Lobby":
             return QUrl("fafgame://faforever.com/games/%d" % self.uid)
-        return None
+        
+        # Old code as reference
         # if self.state == "playing":
         #     url = QUrl("faflive://faforever.com/games/%d/livereplay")
         #     url.setScheme("faflive")

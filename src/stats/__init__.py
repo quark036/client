@@ -23,6 +23,5 @@
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 from ._statswidget import StatsWidget as Stats

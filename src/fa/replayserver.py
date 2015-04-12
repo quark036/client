@@ -30,20 +30,22 @@ from PyQt5.QtWidgets import QProgressDialog, QApplication, QMessageBox
 
 import util
 import fa
+from config import Settings
 
-INTERNET_REPLAY_SERVER_HOST = "faforever.com"
-INTERNET_REPLAY_SERVER_PORT = 15000
+INTERNET_REPLAY_SERVER_HOST = Settings.get('HOST', 'ONLINE_REPLAY_SERVER')
+INTERNET_REPLAY_SERVER_PORT = Settings.get('PORT', 'ONLINE_REPLAY_SERVER')
 
+from . import DEFAULT_LIVE_REPLAY
+from . import DEFAULT_RECORD_REPLAY
 
 class ReplayRecorder(QtCore.QObject): 
-    '''
-    This is a simple class that takes all the FA replay data input from its inputSocket, writes it to a file, 
+    """
+    This is a simple class that takes all the FA replay data input from its inputSocket, writes it to a file,
     and relays it to an internet server via its relaySocket.
-    '''
+    """
     __logger = logging.getLogger(__name__)
-    __logger.setLevel(logging.DEBUG)
-    
-    def __init__(self, parent, login, local_socket, *args, **kwargs):
+
+    def __init__(self, parent, local_socket, *args, **kwargs):
         QtCore.QObject.__init__(self, *args, **kwargs)
         self.parent = parent
         self.inputSocket = local_socket
@@ -58,13 +60,14 @@ class ReplayRecorder(QtCore.QObject):
         self.replayInfo = fa.instance.info
                  
         # Open the relay socket to our server
-        self.relaySocket = QtNetwork.QTcpSocket(self.parent)        
-        self.relaySocket.connectToHost(INTERNET_REPLAY_SERVER_HOST, INTERNET_REPLAY_SERVER_PORT)        
+        self.relaySocket = QtNetwork.QTcpSocket(self.parent)
+        self.relaySocket.connectToHost(INTERNET_REPLAY_SERVER_HOST, INTERNET_REPLAY_SERVER_PORT)
         
-        if self.relaySocket.waitForConnected(1000): #Maybe make this asynchronous
-            self.__logger.debug("internet replay server " + self.relaySocket.peerName() + ":" + str(self.relaySocket.peerPort()))  
-        else:
-            self.__logger.error("no connection to internet replay server")
+        if util.settings.value("fa.live_replay", DEFAULT_LIVE_REPLAY, type=bool):
+            if self.relaySocket.waitForConnected(1000): #Maybe make this asynchronous
+                self.__logger.debug("internet replay server " + self.relaySocket.peerName() + ":" + str(self.relaySocket.peerPort()))
+            else:
+                self.__logger.error("no connection to internet replay server")
 
         
         
@@ -97,8 +100,7 @@ class ReplayRecorder(QtCore.QObject):
         else:
             #Write to buffer
             self.replayData.append(datas)
-        
-        
+
         # Relay to faforever.com
         if self.relaySocket.isOpen():
             self.relaySocket.write(datas)
@@ -122,24 +124,24 @@ class ReplayRecorder(QtCore.QObject):
         # Part of the hardening - ensure successful sending of the rest of the replay to the server
         if self.relaySocket.bytesToWrite():
             self.__logger.info("Waiting for replay transmission to finish: " + str(self.relaySocket.bytesToWrite()) + " bytes")
-            
+
             progress = QProgressDialog("Finishing Replay Transmission", "Cancel", 0, 0)
             progress.show()
-        
+
             while self.relaySocket.bytesToWrite() and progress.isVisible():
                 QApplication.processEvents()
-            
+
             progress.close()
-        
+
         self.relaySocket.disconnectFromHost()
         
-        self.writeReplayFile()
+        if settings.value("fa.record_replay", DEFAULT_RECORD_REPLAY, type=bool):
+            self.writeReplayFile()
         
         self.done()
 
 
     def writeReplayFile(self):
-        
         # Update info block if possible.
         if fa.instance.info and fa.instance.info['uid'] == self.replayInfo['uid']:
             if fa.instance.info.setdefault('complete', False):
@@ -163,12 +165,11 @@ class ReplayRecorder(QtCore.QObject):
         
 
 class ReplayServer(QtNetwork.QTcpServer):
-    ''' 
+    """
     This is a local listening server that FA can send its replay data to.
     It will instantiate a fresh ReplayRecorder for each FA instance that launches.
-    '''
+    """
     __logger = logging.getLogger(__name__)
-    __logger.setLevel(logging.INFO)
 
     def __init__(self, client, *args, **kwargs):
         QtNetwork.QTcpServer.__init__(self, *args, **kwargs)
@@ -181,7 +182,7 @@ class ReplayServer(QtNetwork.QTcpServer):
     def doListen(self,local_port):
         while not self.isListening():
             self.listen(QtNetwork.QHostAddress.LocalHost, local_port)
-            if (self.isListening()):
+            if self.isListening():
                 self.__logger.info("listening on address " + self.serverAddress().toString() + ":" + str(self.serverPort()))
             else:
                 self.__logger.error("cannot listen, port probably used by another application: " + str(local_port))
@@ -200,6 +201,6 @@ class ReplayServer(QtNetwork.QTcpServer):
     def acceptConnection(self):
         socket = self.nextPendingConnection()
         self.__logger.debug("incoming connection...")
-        self.recorders.append(ReplayRecorder(self, self.client.login, socket))
+        self.recorders.append(ReplayRecorder(self, socket))
         pass
 

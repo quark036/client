@@ -30,7 +30,6 @@ import util
 
 import logging
 logger= logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 UPNP_APP_NAME = "Forged Alliance Forever"

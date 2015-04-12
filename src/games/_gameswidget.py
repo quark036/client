@@ -20,13 +20,13 @@ import random
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtNetwork import *
 
 import util
 from games.gameitem import GameItem, GameItemDelegate
 from games.moditem import ModItem, mod_invisible, mods
 from games.hostgamewidget import HostgameWidget
 from games._mapSelectWidget import mapSelectWidget
-from games import logger
 from fa import faction
 import fa
 import modvault
@@ -436,7 +436,7 @@ class GamesWidget(FormClass, BaseClass):
     def startSearchRanked(self, race):
         self.stopSearchingTeamMatchmaker()
         if fa.instance.running():
-            QMessageBox.information(None, "ForgedAlliance.exe", "FA is already running.")
+            QMessageBox.information(None, "ForgedAllianceForever.exe", "FA is already running.")
             self.stopSearchRanked()
             return
 
@@ -484,7 +484,7 @@ class GamesWidget(FormClass, BaseClass):
         if self.radius >= SEARCH_RADIUS_MAX:
             self.radius = SEARCH_RADIUS_MAX;
             logger.debug("Search Cap reached at " + str(self.radius))
-            self.teamTimer.stop()
+#            self.teamTimer.stop()
         else:
             logger.debug("Expanding search to " + str(self.radius))
 
@@ -715,10 +715,19 @@ class GamesWidget(FormClass, BaseClass):
         if not fa.instance.available():
             return
 
-        self.stopSearchRanked() #Actually a workaround
+        self.stopSearchRanked() # Actually a workaround
 
         passw = None
-
+        
+        # FIXME: crap crap craaap
+        if fa.check.game(self.client):
+            if fa.check.check(item.mod, item.mapname, None, item.mods):
+                if item.access == "password":
+                    passw, ok = QtGui.QInputDialog.getText(self.client, "Passworded game" , "Enter password :", QtGui.QLineEdit.Normal, "")
+                    if ok:
+                        self.client.send(dict(command="game_join", password=passw, uid=item.uid, gameport=self.client.gamePort))
+                else :
+                    self.client.send(dict(command="game_join", uid=item.uid, gameport=self.client.gamePort))
         if fa.check.check('faf', item.mapname, None, item.mods):
             from fa.GameSession import GameSession
             self.client.game_session = sess = GameSession()
@@ -756,41 +765,55 @@ class GamesWidget(FormClass, BaseClass):
 
     @pyqtSlot(QListWidgetItem)
     def hostGameClicked(self, item):
-        '''
+        """
         Hosting a game event
-        '''
+        """
         if not fa.instance.available():
             return
 
         self.stopSearchRanked()
 
-        # A simple Hosting dialog.
-        if fa.check.check(item.mod):
-            hostgamewidget = HostgameWidget(self, item)
+        versions_request = self.version_service.versions_for(item.mod)
 
-            if hostgamewidget.exec_() == 1 :
-                if self.gamename:
-                    gameoptions = []
+        def update_progress(text, cur, total):
+            logger.debug("Progress: %(text)s %(cur)d/%(total)d" % {"text": text, "cur": cur, "total": total})
 
-                    if len(self.options) != 0 :
-                        oneChecked = False
-                        for option in self.options :
-                            if option.isChecked() :
-                                oneChecked = True
-                            gameoptions.append(option.isChecked())
+        hostgamewidget = HostgameWidget(self, item, versions_request, self.canChooseMap)
+        if hostgamewidget.exec_() == 1:
+            if self.gamename:
+                modvault.setActiveMods(hostgamewidget.selected_mods, True)
+                logger.debug("Setting active mods to")
+                logger.debug(hostgamewidget.selected_mods)
+                version = hostgamewidget.selected_game_version
 
-                        if oneChecked == False :
-                            QMessageBox.warning(None, "No option checked !", "You have to check at least one option !")
-                            return
-                    modnames = [str(moditem.text()) for moditem in hostgamewidget.modList.selectedItems()]
-                    mods = [hostgamewidget.mods[modstr] for modstr in modnames]
-                    modvault.setActiveMods(mods, True) #should be removed later as it should be managed by the server.
-#                #Send a message to the server with our intent.
-                    if self.ispassworded:
-                        self.client.send(dict(command="game_host", access="password", password = self.gamepassword, mod=item.mod, title=self.gamename, mapname=self.gamemap, gameport=self.client.gamePort, options = gameoptions))
-                    else :
-                        self.client.send(dict(command="game_host", access="public", mod=item.mod, title=self.gamename, mapname=self.gamemap, gameport=self.client.gamePort, options = gameoptions))
-#
+                def launch_game():
+                    if fa.check.game(self, hostgamewidget.selected_game_version):
+                        self.client.send(dict(command="game_host",
+                                              access="password" if self.ispassworded else "public",
+                                              password=self.gamepassword,
+                                              version=version,
+                                              mod=item.mod,
+                                              title=self.gamename,
+                                              mapname=self.gamemap,
+                                              gameport=self.client.gamePort))
+                if not fa.check.game(self, version):
+                    logger.info("Updating game")
+
+                    updater = fa.updater.game_version(version)
+                    self.client.on_progress_start()
+                    updater.done.connect(launch_game)
+                    updater.error.connect(lambda e: logger.critical("Error: %r" % e))
+                    updater.progress.connect(update_progress)
+                    updater.progress.connect(self.client.on_progress)
+                    updater.done.connect(self.client.on_progress_stop)
+                    updater.start()
+                else:
+                    launch_game()
+
+        def error(err):
+            logger.critical(err)
+
+        versions_request.error.connect(error)
 
     def savePassword(self, password):
         self.gamepassword = password
