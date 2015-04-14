@@ -247,17 +247,17 @@ class Chatter(QTableWidgetItem):
     def setChatUserColor(self, username):
         if self.lobby.client.isFriend(username):
             if self.elevation in self.lobby.OPERATOR_COLORS:
-                self.setTextColor(QColor(self.lobby.client.getColor("friend_mod")))
+                self.setForeground(QColor(self.lobby.client.getColor("friend_mod")))
                 return
-            self.setTextColor(QColor(self.lobby.client.getColor("friend")))
+            self.setForeground(QColor(self.lobby.client.getColor("friend")))
             return
         if self.elevation in self.lobby.OPERATOR_COLORS:
-            self.setTextColor(QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
+            self.setForeground(QColor(self.lobby.OPERATOR_COLORS[self.elevation]))
             return
         if self.name in self.lobby.client.colors :
-            self.setTextColor(QColor(self.lobby.client.getColor(self.name)))
+            self.setForeground(QColor(self.lobby.client.getColor(self.name)))
             return
-        self.setTextColor(QColor(self.lobby.client.getUserColor(self.name)))
+        self.setForeground(QColor(self.lobby.client.getUserColor(self.name)))
 
 
     def update(self):

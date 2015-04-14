@@ -229,7 +229,7 @@ class StatsWidget(BaseClass, FormClass):
 
         league = self.client.getUser(self.client.login).league
         if league:
-            self.leagues.setCurrentIndex(league.league-1)
+            self.leagues.setCurrentIndex(league.division-1)
         else :
             self.leagues.setCurrentIndex(0)
             self.client.statsServer.send(dict(command="stats", type="league_table", league=1))

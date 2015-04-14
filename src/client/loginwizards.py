@@ -28,7 +28,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from faftools.api.AuthService import AuthService
+from client import api
 import util
 
 
@@ -69,7 +69,7 @@ class LoginWizard(QWizard):
         self.client.remember = self.field("remember")
         self.client.autologin = self.field("autologin")
 
-        self.login_reply = reply = AuthService.Login(self.login, self.password)
+        self.login_reply = reply = api.Login(self.login, self.password)
 
         reply.error.connect(self._onLoginError)
         reply.done.connect(self._onLoginReply)
@@ -85,13 +85,10 @@ class LoginWizard(QWizard):
     def reject(self):
         QWizard.reject(self)
 
-    def _onLoginError(self, resp):
-        QMessageBox.information(self, "Login Failed", resp['statusMessage'])
+    def _onLoginError(self, err_code, resp):
+        QMessageBox.information(self, "Login Failed", resp)
 
     def _onLoginReply(self, resp):
-        self.client.user_id = resp['user_id']
-        self.client.email = resp['email'] # necessary for irc register currently
-        self.client.session_id = resp["session_id"]
         QWizard.accept(self)
 
 

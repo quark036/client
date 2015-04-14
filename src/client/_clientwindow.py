@@ -1210,8 +1210,8 @@ class ClientWindow(FormClass, BaseClass):
 
         #Determine if a login wizard needs to be displayed and do so
         if self.autologin and self.login and self.password:
-
-            self._login_reply = reply = AuthService.Login(self.login, self.password)
+            from client import api
+            self._login_reply = reply = api.Login(self.login, self.password)
 
             def onError(resp):
                 self.password = None
@@ -1229,9 +1229,9 @@ class ClientWindow(FormClass, BaseClass):
                     self._onLoggedIn()
 
             def onSuccess(resp):
-                self.user_id = resp['user_id']
-                self.email = resp['email'] # necessary for irc register currently
-                self.session_id = resp['session_id']
+                # self.user_id = resp['user_id']
+                # self.email = resp['email'] # necessary for irc register currently
+                # self.session_id = resp['session_id']
                 self._onLoggedIn()
 
                 del self._login_reply

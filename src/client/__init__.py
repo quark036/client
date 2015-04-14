@@ -64,6 +64,11 @@ class ClientState:
 
 
 
+from faftools.api import FAF_API
+
+api = FAF_API('client','Abrakadabra')
+
+
 from ._clientwindow import ClientWindow as Client
 
 instance = Client()
