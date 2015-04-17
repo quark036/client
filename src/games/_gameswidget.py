@@ -186,9 +186,7 @@ class GamesWidget(FormClass, BaseClass):
     def _syncGameList(self):
 
         def _onPollError(http_code, resp):
-            QMessageBox.warning( self, "Game Listing Failed", resp['statusMessage'] )
-
-            del self._poll_reply
+            QMessageBox.warning( self, "Game Listing Failed", resp )
 
         def _onPollSuccess(resp):
             self.gameList.clear()
@@ -196,12 +194,10 @@ class GamesWidget(FormClass, BaseClass):
             for game in resp['games']:
                 self._onGameOpened(game)
 
-            del self._poll_reply
+        reply = GamesService.Current()
 
-        self._poll_reply = rep = GamesService.Current()
-
-        rep.error.connect(_onPollError)
-        rep.done.connect(_onPollSuccess)
+        reply.error.connect(_onPollError)
+        reply.done.connect(_onPollSuccess)
 
     def onCreateGameClicked(self):
 
@@ -215,7 +211,13 @@ class GamesWidget(FormClass, BaseClass):
 
         # A simple Hosting dialog.
         # if fa.exe.check(item.mod):
-        hostgamewidget = HostgameWidget(self.client, self)
+        from faftools.api.VersionService import VersionService
+
+        ver_rep = VersionService.versions_for('faf')
+
+        class ffs_item():
+            name = 'FAF'
+        hostgamewidget = HostgameWidget(self, ffs_item(), ver_rep, True)
 
         item_mod = "banana"
 

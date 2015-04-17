@@ -39,7 +39,7 @@ FormClass, BaseClass = util.loadUiType("games/host.ui")
 
 
 class HostgameWidget(FormClass, BaseClass):
-    def __init__(self, client, parent, item, versions_request, allow_map_choice):
+    def __init__(self, parent, item, versions_request, allow_map_choice):
         BaseClass.__init__(self)
 
         logger.debug("HostGameWidget started with: ")
@@ -48,6 +48,7 @@ class HostgameWidget(FormClass, BaseClass):
         
         self.setupUi(self)
         self.parent = parent
+        self.client = parent.client
         
         self.parent.options = []
 
@@ -66,7 +67,7 @@ class HostgameWidget(FormClass, BaseClass):
 
         self.message = {}
         self.message['Title'] = self.parent.gamename
-        self.message['host'] = {'username':self.parent.client.login}
+        self.message['Host'] = {'username':self.parent.client.login}
         self.message['teams'] = {1:[self.parent.client.login]}
 #        self.message.get('access', 'public')
         self.message['featured_mod'] = "faf"
@@ -142,8 +143,6 @@ class HostgameWidget(FormClass, BaseClass):
 
         sess.addArg('mean', 1000)
         sess.addArg('deviation', 0)
-
-        sess.addArg('init', 'init_test.lua')
 
         sess.setTitle(self.message['Title'])
 
