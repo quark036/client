@@ -3,40 +3,40 @@ __author__ = 'Thygrrr'
 import os
 import re
 from urllib.parse import urlparse
-import logging
-
 import pygit2
+
+import logging
 logger = logging.getLogger(__name__)
 
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
 
+class Repository(QObject):
 
-class Repository(QtCore.QObject):
-
-    transfer_progress_value = QtCore.pyqtSignal(int)
-    transfer_progress_maximum = QtCore.pyqtSignal(int)
-    progress = QtCore.pyqtSignal(int, int)
-    transfer_complete = QtCore.pyqtSignal()
+    progress_state = pyqtSignal(str)
+    progress_value = pyqtSignal(int)
+    progress_max   = pyqtSignal(int)
+    progress_complete = pyqtSignal()
 
     def __init__(self, path, url=None, parent=None):
-        QtCore.QObject.__init__(self, parent)
+        QObject.__init__(self, parent)
 
         assert path
 
         self._path = path
         self.url = url
 
-        logger.info("Opening repository at " + self.path)
+        logger.debug("Opening repository at " + self.path)
         if not os.path.exists(self.path):
+            if not self.url:
+                raise RuntimeError('Cannot create git.Repository with an empty path and no url.')
+
+            logger.debug("Cloning %s into %s", self.url, self.path)
             self.repo = pygit2.init_repository(self.path)
+            self.fetch_url(url)
         else:
             if not os.path.exists(os.path.join(self.path, ".git")):
                 raise pygit2.GitError(self.path + " doesn't seem to be a git repo. libgit2 might crash.")
             self.repo = pygit2.Repository(self.path)
-
-        if not "faf" in self.remote_names and url is not None:
-            logger.info("Adding remote 'faf' " + self.path)
-            self.repo.create_remote("faf", self.url)
 
     def __del__(self):
         self.close()
@@ -74,12 +74,11 @@ class Repository(QtCore.QObject):
         return self.repo.head.target
 
     def _sideband(self, operation):
-        logger.debug(operation)
+        self.progress_state.emit(operation)
 
     def _transfer(self, transfer_progress):
-        self.transfer_progress_value.emit(transfer_progress.received_objects)
-        self.transfer_progress_maximum.emit(transfer_progress.total_objects)
-        self.progress.emit(transfer_progress.received_objects, transfer_progress.total_objects)
+        self.progress_max.emit(transfer_progress.total_objects)
+        self.progress_value.emit(transfer_progress.received_objects)
 
     def has_hex(self, hex):
         try:
@@ -97,43 +96,49 @@ class Repository(QtCore.QObject):
             pass
         return self.has_hex(version.hash)
 
+    def _build_remote(self, url_str):
+        url = urlparse(url_str)
+        if url.hostname.endswith('faforever.com'):
+            remote_name = 'faf'
+        else:
+            remote_name = '_'.join(reversed(url.hostname.split('.'))) \
+                        + '_'.join(url.path.split('/')[:2])
+
+        logger.debug("Adding remote %s -> %s in %s", remote_name, url_str, self.path)
+        return self.repo.create_remote(remote_name, url_str)
+
+    def fetch_remote(self, remote: pygit2.Remote):
+        logger.debug("Fetching '" + remote.name + "' from " + remote.url)
+        remote.sideband_progress = self._sideband
+        remote.transfer_progress = self._transfer
+        remote.fetch()
+
     def fetch(self):
         for remote in self.repo.remotes:
-            logger.info("Fetching '" + remote.name + "' from " + remote.url)
-            remote.sideband_progress = self._sideband
-            remote.transfer_progress = self._transfer
-            remote.fetch()
+            self.fetch_remote(remote)
 
         # It's not entirely clear why this needs to happen, but libgit2 expects the head to point somewhere after fetch
         if self.repo.listall_references():
             self.repo.set_head(self.repo.listall_references()[0])
 
-        self.transfer_complete.emit()
+        self.progress_complete.emit()
 
-    def fetch_url(self, url):
-        if not urlparse(url).hostname in self.remote_names:
-            remote = self.repo.create_remote(urlparse(url).hostname, url)
-        else:
-            for r in self.repo.remotes:
-                if r.name == urlparse(url).hostname:
-                    remote = r
-        logger.debug("Fetching '"+url+"'")
-        remote.sideband_progress = self._sideband
-        remote.transfer_progress = self._transfer
+    def fetch_url(self, url_str):
+        remotes = {r.url: r for r in self.repo.remotes}
+
+        remote = remotes.get(url_str)
+        if not remote:
+            remote = self._build_remote(url_str)
+
         remote.fetch()
 
         if self.repo.listall_references():
             self.repo.set_head(self.repo.listall_references()[0])
 
-        self.transfer_complete.emit()
+        self.progress_complete.emit()
 
     def fetch_version(self, version):
-        if version.url is None:
-            # Fetch from faf
-            if 'faf' in self.repo.remotes:
-                self.fetch()
-        else:
-            self.fetch_url(version.url)
+        self.fetch_url(version.url)
 
     def checkout(self, target="faf/master"):
         logger.debug("Checking out " + target + " in " + self.path)
@@ -144,8 +149,11 @@ class Repository(QtCore.QObject):
         elif target in self.tags:
             self.repo.checkout(self.repo.lookup_reference("refs/tags/" + target), strategy=pygit2.GIT_CHECKOUT_FORCE)
         else:
-            reference = self.repo[target]
-            self.repo.reset(reference.id, pygit2.GIT_RESET_HARD)
+            try:
+                ob = self.repo[target]
+                self.repo.checkout_tree(ob, strategy=pygit2.GIT_CHECKOUT_FORCE)
+            except KeyError:
+                raise pygit2.GitError('No such oid: %s' % target)
 
     def checkout_version(self, version):
         if version.hash:
