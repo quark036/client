@@ -68,7 +68,12 @@ from faftools.api import FAF_API
 
 api = FAF_API('client','Abrakadabra')
 
+from fa.resources import FAResources
 
+import util
+
+RES = FAResources(util.REPO_DIR)
+RES.Synchronize()
 from ._clientwindow import ClientWindow as Client
 
 instance = Client()
