@@ -61,6 +61,7 @@ It is here because the server doesn't yet send the mods info.
 
 The tempAddMods function should be removed after the server can return mods in the modvault.
 """
+from git import Version
 
 from modvault.utils import *
 from .modwidget import ModWidget
@@ -72,6 +73,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 import urllib.request, urllib.error, urllib.parse
 
+from PyQt5.QtCore import *
+
+from faftools.api.ModService import ModService
+from faftools.api.VersionService import VersionService
+
 d = util.datetostr(util.now())
 '''
 tempmod1 = dict(uid=1,name='Mod1', comments=[],bugreports=[], date = d,
@@ -79,6 +85,38 @@ tempmod1 = dict(uid=1,name='Mod1', comments=[],bugreports=[], date = d,
                 thumbnail="",author='johnie102',
                 description="""Lorem ipsum dolor sit amet, consectetur adipiscing elit. """,)
 '''
+
+from PyQt5.QtNetwork import *
+
+class WebImage(QLabel):
+    def __init__(self, qreply: QNetworkReply=None, placeholder=None, parent=None):
+        super(WebImage, self).__init__(parent)
+
+        if placeholder:
+            if isinstance(placeholder, QPicture):
+                self.setPicture(placeholder)
+            elif isinstance(placeholder, QPixmap):
+                self.setPixmap(placeholder)
+
+        self._reply = None
+        if qreply:
+            self.set_reply(qreply)
+
+    def set_reply(self, qreply: QNetworkReply):
+        if self._reply:
+            self._reply.abort()
+
+        self._reply = qreply
+        self._reply.done.connect(self._get_finished)
+        self._reply.error.connect(self._get_failed)
+
+    def _get_finished(self, data):
+        self._reply = None
+
+        self.setPixmap(QPixmap.loadFromData(data))
+
+    def _get_failed(self, http_code, data):
+        self._reply = None
 
 FormClass, BaseClass = util.loadUiType("modvault/modvault.ui")
 
@@ -97,41 +135,28 @@ class ModVault(FormClass, BaseClass):
         self.modList.setItemDelegate(ModItemDelegate(self))
         self.modList.itemDoubleClicked.connect(self.modClicked)
         self.searchButton.clicked.connect(self.search)
-        self.searchInput.textChanged.connect(self.localSearch)
+        self.searchInput.returnPressed.connect(self.search)
         self.uploadButton.clicked.connect(self.openUploadForm)
         self.UIButton.clicked.connect(self.openUIModForm)
 
         self.SortType.setCurrentIndex(2)
         self.SortType.currentIndexChanged.connect(self.sortChanged)
         self.ShowType.currentIndexChanged.connect(self.showChanged)
-        
-        
-        self.client.showMods.connect(self.tabOpened)
-        self.client.modVaultInfo.connect(self.modInfo)
+
+        self.auto_search_timer = QTimer(self)
+        self.auto_search_timer.timeout.connect(self.search)
+        self.auto_search_timer.setSingleShot(True)
+
+        self.searchInput.textChanged.connect(self._onSearchInputChanged)
+
+        self.last_query = None
 
         self.sortType = "rating"
         self.showType = "all"
         self.searchString = ""
 
         self.mods = {}
-        self.uids = [mod.uid for mod in getInstalledMods()]
-
-    @QtCore.pyqtSlot(dict)
-    def modInfo(self, message): #this is called when the database has send a mod to us
-        """
-        See above for the keys neccessary in message.
-        """
-        uid = message["uid"]
-        if not uid in self.mods:
-            mod = ModItem(self, uid)
-            self.mods[uid] = mod
-            self.modList.addItem(mod)
-        else : 
-            mod = self.mods[uid]
-        mod.update(message)
-        self.modList.sortItems(1)
-        
-        
+        self.installed_mods_uid = {mod.uid for mod in getInstalledMods()}
 
     @QtCore.pyqtSlot(int)
     def sortChanged(self, index):
@@ -170,30 +195,44 @@ class ModVault(FormClass, BaseClass):
         widget.exec_()
 
     def search(self):
-        ''' Sending search to mod server'''
-        
-        searchString = self.searchInput.text().lower()
-        index = self.ShowType.currentIndex()
-        typemod = 2
+        query = self.searchInput.text().lower()
+        if query != self.last_query:
+            self.auto_search_timer.stop()
 
-        if index == 1:
-            typemod = 1
-        elif index == 2:
-            typemod = 0
+            index = self.ShowType.currentIndex()
 
-        self.client.statsServer.send(dict(command="modvault_search", typemod=typemod, search=searchString))
+            self.last_query = query
+            reply = ModService.Search(query)
+
+            reply.done.connect(self._onSearchReply)
+
+    def _onSearchInputChanged(self):
+        query = self.searchInput.text()
+        if len(query) > 2 and query != self.last_query:
+            self.auto_search_timer.start(1000)
+
+    def _onSearchReply(self, mods: list):
+        self.mods.clear()
+        self.modList.clear()
+        for mod_data in mods:
+            uid = mod_data['uid']
+
+            modItem = ModItem(mod_data['id'], uid, self)
+            modItem.update(mod_data)
+            self.mods[uid] = modItem
+            self.modList.addItem(modItem)
 
     @QtCore.pyqtSlot(str)
     def localSearch(self, text):
         self.searchString = self.searchInput.text().lower()
         self.updateVisibilities()
-    
+
 
     @QtCore.pyqtSlot()
     def openUIModForm(self):
         dialog = UIModWidget(self)
         dialog.exec_()
-    
+
     @QtCore.pyqtSlot()
     def openUploadForm(self):
         modDir = QFileDialog.getExistingDirectory(self.client, "Select the mod directory to upload", MODFOLDER,  QFileDialog.ShowDirsOnly)
@@ -229,19 +268,22 @@ class ModVault(FormClass, BaseClass):
         logger.debug("Updating visibilities with sort '%s' and visibility '%s'" % (self.sortType, self.showType))
         for mod in self.mods:
             self.mods[mod].updateVisibility()
-        self.modList.sortItems(1)
+        #self.modList.sortItems(1)
 
     def downloadMod(self, mod):
-        if downloadMod(mod):
-            self.client.send(dict(command="modvault",type="download", uid=mod.uid))
-            self.uids = [mod.uid for mod in getInstalledMods()]
+        from client import RES
+
+        rep = ModService.Info(mod.id)
+        def on_done(data):
+            RES.AddResource(Version.from_dict(data['repo']))
+            self.installed_mods_uid.add(mod.uid)
             self.updateVisibilities()
-            return True
-        else: return False
+
+        rep.done.connect(on_done)
 
     def removeMod(self, mod):
         if removeMod(mod):
-            self.uids = [m.uid for m in installedMods]
+            self.installed_mods_uid = [m.uid for m in installedMods]
             mod.updateVisibility()
     
         
@@ -310,10 +352,11 @@ class ModItem(QListWidgetItem):
     FORMATTER_MOD = str(util.readfile("modvault/modinfo.qthtml"))
     FORMATTER_MOD_UI = str(util.readfile("modvault/modinfoui.qthtml"))
     
-    def __init__(self, parent, uid, *args, **kwargs):
+    def __init__(self, id, uid, parent, *args, **kwargs):
         QListWidgetItem.__init__(self, *args, **kwargs)
 
         self.parent = parent
+        self.id = id
         self.uid = uid
         self.name = ""
         self.description = ""
@@ -335,22 +378,30 @@ class ModItem(QListWidgetItem):
         self.loadThread = None
         self.setHidden(True)
 
-    def update(self, dic):
+        rep = ModService.Icon(id)
+        rep.done.connect(self._on_get_icon_done)
+
+    def _on_get_icon_done(self, data):
+        icon = QPixmap()
+        icon.loadFromData(data)
+        self.setIcon(QIcon(icon))
+
+    def update(self, dic: dict):
         self.name = dic["name"]
-        self.played = dic["played"]
+        self.played = dic.get('played', -1)
         self.description = dic["description"]
-        self.version = dic["version"]
+        self.version = dic.get('version', -1)
         self.author = dic["author"]
-        self.downloads = dic["downloads"]
-        self.likes = dic["likes"]
-        self.comments = dic["comments"]
-        self.bugreports = dic["bugreports"]
-        self.date = QtCore.QDateTime.fromTime_t(dic['date']).toString("yyyy-MM-dd")
-        self.isuimod = dic["ui"]
-        self.isbigmod = dic["big"]
-        self.issmallmod = dic["small"]
-        self.link = dic["link"] #Direct link to the zip file.
-        self.thumbstr = dic["thumbnail"]# direct url to the thumbnail file.
+        self.downloads = dic.get('downloads', -1)
+        self.likes = dic.get('likes', -1)
+        self.comments = dic.get('comments', [])
+        self.bugreports = dic.get('bugreports', [])
+        self.date = dic['time_updated'] or dic['time_added']
+        self.isuimod = dic['ui_only']
+        self.isbigmod = dic.get('big', None)
+        self.issmallmod = dic.get('small', None)
+        self.link = dic.get("link", '') #Direct link to the zip file.
+        self.thumbstr = dic.get("thumbnail", '')# direct url to the thumbnail file.
         self.uploadedbyuser = (self.author == self.parent.client.login)
 
         self.thumbnail = None
@@ -364,14 +415,11 @@ class ModItem(QListWidgetItem):
                 self.parent.client.downloader.downloadModPreview(self.thumbstr, self)
         self.updateVisibility()
 
-    def updateIcon(self):
-        self.setIcon(self.thumbnail)
-
     def shouldBeVisible(self):
         p = self.parent
-        if p.searchString != "":
-            if not (self.author.lower().find(p.searchString) != -1 or self.name.lower().find(p.searchString) != -1 or self.description.lower().find(" " + p.searchString +" ") != -1):
-                return False
+        # if p.searchString != "":
+        #     if not (self.author.lower().find(p.searchString) != -1 or self.name.lower().find(p.searchString) != -1 or self.description.lower().find(" " + p.searchString +" ") != -1):
+        #         return False
         if p.showType == "all":
             return True
         elif p.showType == "ui":
@@ -385,7 +433,7 @@ class ModItem(QListWidgetItem):
         elif p.showType == "yours":
             return self.uploadedbyuser
         elif p.showType == "installed":
-            return self.uid in self.parent.uids
+            return self.uid in self.parent.installed_mods_uid
         else: #shouldn't happen
             return True
 
@@ -400,7 +448,7 @@ class ModItem(QListWidgetItem):
         if self.isuimod: modtype ="UI mod"
         elif self.isbigmod: modtype="big mod"
         elif self.issmallmod: modtype="small mod"
-        if self.uid in self.parent.uids: color="green"
+        if self.uid in self.parent.installed_mods_uid: color="green"
         else: color="white"
         
         if self.isuimod:
