@@ -52,8 +52,11 @@ class GameSession(QObject):
 
         self._game_listener = QTcpServer(self)
         assert self._game_listener.listen(QHostAddress.LocalHost)
-
         self._game_listener.newConnection.connect(self._onNewGameConnection)
+
+        self._replay_listener = None
+        self._replay_stream = None
+        self._replay_endpoints = []
 
         self.addArg('nobugreport')
         self.addArg('gpgnet', '127.0.0.1:%d' % self._game_listener.serverPort())
@@ -82,6 +85,25 @@ class GameSession(QObject):
     def setLocalPlayer(self, playerName, playerUID=0):
         self.playerName = str(playerName)
         self.playerUID = playerUID
+
+    def saveReplay(self, endpoint_dev:QIODevice):
+        """
+        Save session replay to device: Can be anything.
+
+        Can be called multiple times to declare multiple endpoints.
+        """
+
+        if not self._replay_listener:
+            self._replay_listener = QTcpServer(self)
+            assert self._replay_listener.listen(QHostAddress.LocalHost)
+            self._replay_listener.newConnection.connect(self._onNewReplayStream)
+            self.addArg('savereplay', 'gpgnet://127.0.0.1:%d' % self._replay_listener.serverPort())
+
+        assert isinstance(endpoint_dev, QIODevice)
+        if isinstance(endpoint_dev, QAbstractSocket):
+            endpoint_dev.setSocketOption(QAbstractSocket.LowDelayOption, 1)
+
+        self._replay_endpoints.append(endpoint_dev)
 
     # FAF Connection
     def setFAFConnection(self, faf_conn):
@@ -145,12 +167,53 @@ class GameSession(QObject):
     def gameState(self):
         return self._GameState
 
+    # Replay Stream
+    def _onNewReplayStream(self):
+        self._replay_stream = self._replay_listener.nextPendingConnection()
+        self._replay_stream.readyRead.connect(self._replayRead)
+        self._replay_stream.disconnected.connect(self._replayDone)
+        logger.info("ReplayStream: connected.")
+
+        del self._replay_listener
+
+        self._replay_stream_first = False # Has the first packet been read
+
+    def _replayRead(self):
+        dev = self._replay_stream
+        data = dev.readAll()
+
+        if not self._replay_stream_first:
+            # Strip Gpgnet 'POST' prefix
+            assert data[0] == 'P'
+            data.remove(0, data.indexOf(b'\x00')+1)
+
+            for endpoint in self._replay_endpoints:
+                if isinstance(endpoint, QAbstractSocket):
+                    endpoint.write('P/%d/%s.fafreplay' % (self.playerUID, self.playerName))
+
+            self._replay_stream_first = True
+
+        for endpoint in self._replay_endpoints:
+            endpoint.write(data)
+            if isinstance(endpoint, QAbstractSocket):
+                endpoint.flush()
+
+    def _replayDone(self):
+        self._replayRead()
+
+        for endpoint in self._replay_endpoints:
+            endpoint.close()
+
+        logger.info("ReplayStream: disconnected/finished.")
+
     # Game Connection
     def _onNewGameConnection(self):
         self._conn = GameConnection(self._game_listener.nextPendingConnection())
         self._conn.messageReceived.connect(self._onGameConnectionMessage)
         self._conn.closed.connect(self._onGameConnectionClosed)
         logger.info("GC: connected.")
+
+        del self._game_listener
 
     def _onGameConnectionMessage(self, command, args):
         if command == "GameState":
