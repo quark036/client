@@ -14,7 +14,7 @@ class Repository(QObject):
 
     progress_state = pyqtSignal(str)
     progress_value = pyqtSignal(int)
-    progress_max   = pyqtSignal(int)
+    progress_maximum  = pyqtSignal(int)
     progress_complete = pyqtSignal()
 
     def __init__(self, path, url=None, parent=None):

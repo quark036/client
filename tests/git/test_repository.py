@@ -57,8 +57,8 @@ def test_emits_transfer_signals_on_fetch(tmpdir, signal_receiver):
     repo_dir = str(tmpdir.join("test_repo"))
     test_repo = Repository(repo_dir, TEST_REPO_URL)
     test_repo.transfer_complete.connect(signal_receiver.generic_slot)
-    test_repo.transfer_progress_value.connect(signal_receiver.int_slot)
-    test_repo.transfer_progress_maximum.connect(signal_receiver.int_slot)
+    test_repo.progress_value.connect(signal_receiver.int_slot)
+    test_repo.progress_maximum.connect(signal_receiver.int_slot)
     test_repo.fetch()
 
     assert signal_receiver.generic_values
