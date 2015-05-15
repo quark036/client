@@ -634,3 +634,32 @@ def waitForSignal(*signals):
     for signal in signals:
         signal.connect(loop.quit)
     loop.exec_(QEventLoop.AllEvents | QEventLoop.WaitForMoreEvents)
+
+import lupa
+
+def makeLuaSandbox():
+    lua = lupa.LuaRuntime(register_eval=False,
+                          unpack_returned_tuples=True)
+
+    sandbox = lua.eval('{}')
+    setfenv = lua.eval("setfenv")
+
+    sandbox['print'] = lua.eval('_G')['print']
+
+    sandbox['BOOLEAN'] = lambda x: x
+    sandbox['FLOAT'] = lambda x: x
+    sandbox['STRING'] = lambda x: x
+    sandbox['VECTOR2'] = lambda x,y: [x,y]
+    sandbox['VECTOR3'] = lambda x,y,z: [x,y,z]
+
+    sandbox['GROUP'] = lambda x: x
+    sandbox['RECTANGLE'] = lambda x0,y0,x1,y1: [x0,y0,x1,y1]
+
+    setfenv(0, sandbox)
+
+    return lua
+
+def loadLua(lua_source):
+    lua = makeLuaSandbox()
+    lua.execute(lua_source)
+    return lua
