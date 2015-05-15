@@ -225,7 +225,7 @@ class CoopWidget(FormClass, BaseClass):
         
         # A simple Hosting dialog.
         if fa.check.check("coop"):
-            hostgamewidget = HostgameWidget(self, item)
+            hostgamewidget = HostgameWidget(self, 'coop')
             
             if hostgamewidget.exec_() == 1 :
                 if self.gamename:

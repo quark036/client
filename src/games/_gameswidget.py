@@ -213,11 +213,7 @@ class GamesWidget(FormClass, BaseClass):
         # if fa.exe.check(item.mod):
         from faftools.api.VersionService import VersionService
 
-        ver_rep = VersionService.versions_for('faf')
-
-        class ffs_item():
-            name = 'FAF'
-        hostgamewidget = HostgameWidget(self, ffs_item(), ver_rep, True)
+        hostgamewidget = HostgameWidget(self, 'faf', True)
 
         item_mod = "banana"
 
@@ -777,7 +773,7 @@ class GamesWidget(FormClass, BaseClass):
         def update_progress(text, cur, total):
             logger.debug("Progress: %(text)s %(cur)d/%(total)d" % {"text": text, "cur": cur, "total": total})
 
-        hostgamewidget = HostgameWidget(self, item, versions_request, self.canChooseMap)
+        hostgamewidget = HostgameWidget(self, 'faf', self.canChooseMap)
         if hostgamewidget.exec_() == 1:
             if self.gamename:
                 modvault.setActiveMods(hostgamewidget.selected_mods, True)

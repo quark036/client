@@ -18,7 +18,8 @@
 
 import logging
 
-from PyQt5 import QtCore
+from PyQt5.QtCore import *
+from PyQt5.QtNetwork import *
 
 from games.gameitem import GameItem, GameItemDelegate
 import modvault
@@ -27,6 +28,8 @@ from fa.mod import Mod
 from fa.game_version import GameVersion
 from git.version import Version
 import util
+from client import RES
+from faftools.api.VersionService import VersionService
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +42,11 @@ FormClass, BaseClass = util.loadUiType("games/host.ui")
 
 
 class HostgameWidget(FormClass, BaseClass):
-    def __init__(self, parent, item, versions_request, allow_map_choice):
+    def __init__(self, parent, main_mod='faf', allow_map_choice=True):
         BaseClass.__init__(self)
 
-        logger.debug("HostGameWidget started with: ")
-        logger.debug(item)
-        logger.debug(allow_map_choice)
-        
+        logger.debug("HostGameWidget started with: %s, %s", main_mod, allow_map_choice)
+
         self.setupUi(self)
         self.parent = parent
         self.client = parent.client
@@ -54,7 +55,7 @@ class HostgameWidget(FormClass, BaseClass):
 
         self.setStyleSheet(self.parent.client.styleSheet())
         
-        self.setWindowTitle("Host Game: " + item.name)
+        self.setWindowTitle("Host Game: " + main_mod)
         self.titleEdit.setText(self.parent.gamename)
         self.passEdit.setText(self.parent.gamepassword)
         self.game = GameItem(0)
@@ -82,12 +83,12 @@ class HostgameWidget(FormClass, BaseClass):
                                   "Team": 1}
         self.game.update(self.message, self.parent.client)
 
-        versions_request.done.connect(self.set_versions)
         self.versions = []
         self.selectedVersion = 0
         self.versionList.setVisible(False)
         self.gameVersionLabel.setVisible(False)
 
+        self.switch_main_mod(main_mod)
         i = 0
         index = 0
         if allow_map_choice:
@@ -111,22 +112,22 @@ class HostgameWidget(FormClass, BaseClass):
 
         self.mods = {}
         #this makes it so you can select every non-ui_only mod
-        for mod in modvault.getInstalledMods():
-            if mod.ui_only:
-                continue
-            self.mods[mod.totalname] = mod
-            self.modList.addItem(mod.totalname)
+        for mod in RES.AvailableMods().values():
+            if not mod.ui_only and not mod.main_mod:
+                self.mods[mod.name] = mod
+                self.modList.addItem(mod.name)
 
-        names = [mod.totalname for mod in modvault.getActiveMods(uimods=False)]
+        names = [mod.name for mod in modvault.getActiveMods(uimods=False)]
         logger.debug("Active Mods detected: %s" % str(names))
         for name in names:
-            l = self.modList.findItems(name, QtCore.Qt.MatchExactly)
+            l = self.modList.findItems(name, Qt.MatchExactly)
             logger.debug("found item: %s" % l[0].text())
             if l: l[0].setSelected(True)
             
         #self.mapPreview.setPixmap(icon)
         
         self.mapList.currentIndexChanged.connect(self.mapChanged)
+        self.versionList.currentIndexChanged.connect(self._onSelectedVersion)
         self.hostButton.clicked.connect(self._onHostButtonClicked)
         self.titleEdit.textChanged.connect(self.updateText)
 
@@ -135,6 +136,7 @@ class HostgameWidget(FormClass, BaseClass):
 
         from fa.check import check
 
+        modvault.setActiveMods(self.selected_mods, True)
         check('faf')
         self.client.game_session = sess = GameSession()
 
@@ -149,12 +151,27 @@ class HostgameWidget(FormClass, BaseClass):
         sess.setMap(self.message["mapname"])
         sess.setLocalPlayer(self.client.login, self.client.user_id)
 
-        sess.setFAFConnection(self.client.lobby_ctx)
+        # TODO: Connection to GS
+        #sess.setFAFConnection(self.client.lobby_ctx)
 
+        # TODO: Add replay file endpoint
+        #file = QFile('/tmp/replay_test.scfareplay')
+        #file.open(QFile.WriteOnly)
+        #sess.saveReplay(file)
+
+        # TODO: Connect to live-replay-server
+        #socket = QTcpSocket()
+        #socket.connectToHost('localhost', 15000)
+        #sess.saveReplay(socket)
         sess.start()
 
         self.done(0)
 
+    def switch_main_mod(self, main_mod):
+        self.message['featured_mod'] = main_mod
+        self.versionList.clear()
+        req = VersionService.versions_for(main_mod)
+        req.done.connect(self.set_versions)
 
     def set_versions(self, versions):
         self.versions = versions
@@ -169,6 +186,14 @@ class HostgameWidget(FormClass, BaseClass):
             self.gameVersionLabel.setVisible(True)
 
 
+    def _onSelectedVersion(self):
+
+        game_ver = self.selected_game_version
+
+        # Download/update version in background
+        RES.AddResource(game_ver.engine)
+        RES.AddResource(game_ver.main_mod.version)
+
     @property
     def selected_game_version(self):
         """
@@ -179,12 +204,11 @@ class HostgameWidget(FormClass, BaseClass):
         logger.debug("Using")
         logger.debug(version)
         version_mm = Version.from_dict(version['ver_main_mod'])
-        version_mm._version['url'] = None
         version_engine = Version.from_dict(version['ver_engine'])
-        version_engine._version['url'] = None
         main_mod = Mod(version['name'],
                        version['mod'],
                        version_mm)
+
         return GameVersion(version_engine,
                            main_mod,
                            [],
