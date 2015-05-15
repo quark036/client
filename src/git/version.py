@@ -29,6 +29,9 @@ class Version():
     def __init__(self, repo, ref, url=None, hash=None):
         self._version = {"repo": repo, "ref": ref, "url": url, "hash": hash}
 
+        self.id = None
+        self.type = None
+
     @staticmethod
     def from_json(string):
         json_object = json.loads(string)
@@ -36,10 +39,15 @@ class Version():
 
     @staticmethod
     def from_dict(dictionary):
-        return Version(dictionary['repo'],
+        ver = Version(dictionary['repo'],
                        dictionary['ref'],
                        dictionary.get('url'),
                        dictionary.get('hash'))
+
+        ver.id = dictionary.get('id')
+        ver.type = dictionary.get('type')
+
+        return ver
 
     def __eq__(self, other):
         if not isinstance(other, Version):
