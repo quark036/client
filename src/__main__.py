@@ -93,7 +93,7 @@ def runFAF():
     # Main update loop
     QApplication.exec_()
 
-#Actual "main" method 
+#Actual "main" method
 if __name__ == '__main__':
     #Set up logging framework
     import logging
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     # Setup faftools api NAM
     nam = QNetworkAccessManager()
-    initialize_faftools_api(nam,'localhost:8080')
+    initialize_faftools_api(nam, 'api.dev.faforever.com')
 
     # Make a python interpreter timer,
     # so that python events (exceptions) get processed.
@@ -114,6 +114,11 @@ if __name__ == '__main__':
     interpreter_timer.start(500)
     interpreter_timer.timeout.connect(lambda: None)
 
+    # Enable developer things
+    if util.developer():
+        from util import debug_reload
+        debug_reload.init()
+        logging.root.setLevel(logging.DEBUG)
     #Set application icon to nicely stack in the system task bar on windows
     if os.name == 'nt' and \
        getattr(ctypes.windll.shell32, "SetCurrentProcessExplicitAppUserModelID", None) is not None:
