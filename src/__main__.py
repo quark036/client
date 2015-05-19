@@ -101,6 +101,7 @@ if __name__ == '__main__':
 
     #init application framework    
     logger.info(">>> --------------------------- Application Launch")
+    QApplication.addLibraryPath('./lib/')
     app = QApplication(sys.argv)
     app.setWindowIcon(util.icon("window_icon.png", True))
 
