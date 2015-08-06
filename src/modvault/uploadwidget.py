@@ -141,9 +141,6 @@ class UploadModWidget(FormClass, BaseClass):
             QtGui.QMessageBox.critical(self.client, "Mod uploading error", "Something went wrong zipping the mod files.")
             return
         qfile =QtCore.QFile(temp.name)
-
-        self.modinfo.big = (self.SizeType.currentIndex() == 1)
-        self.modinfo.small = (self.SizeType.currentIndex() == 2)
         
         #The server should check again if there is already a mod with this name or UID.
         self.client.writeToServer("UPLOAD_MOD", "%s.v%04d.zip" % (self.modinfo.name, self.modinfo.version), self.modinfo.to_dict(), qfile)
