@@ -315,7 +315,6 @@ class ClientWindow(FormClass, BaseClass):
 
         self.power = 0          # current user power
         self.id = 0
-        self.email = None
         self.coloredNicknames = False
         #Initialize the Menu Bar according to settings etc.
         self.initMenus()
@@ -1750,7 +1749,6 @@ class ClientWindow(FormClass, BaseClass):
                 self.state = ClientState.ACCEPTED
 
         else :
-            self.email = message["email"]
             self.id = message["id"]
             self.login = message["login"]
             logger.debug("Login success")
