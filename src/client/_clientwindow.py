@@ -1011,7 +1011,6 @@ class ClientWindow(FormClass, BaseClass):
         self.socket.connectToHost(LOBBY_HOST, LOBBY_PORT)
 
 
-
         while (self.socket.state() != QtNetwork.QAbstractSocket.ConnectedState) and self.progress.isVisible():
             QtGui.QApplication.processEvents()
 
@@ -1019,7 +1018,7 @@ class ClientWindow(FormClass, BaseClass):
         self.localIP = str(self.socket.localAddress().toString())
 
 
-#        #Perform Version Check first
+        # Perform Version Check first
         if not self.socket.state() == QtNetwork.QAbstractSocket.ConnectedState:
 
             self.progress.close() # in case it was still showing...
@@ -1076,9 +1075,6 @@ class ClientWindow(FormClass, BaseClass):
             self.send(dict(command="hello", version=util.VERSION, login=self.login, password=self.password, unique_id=self.uniqueId, local_ip=self.localIP, session=self.session))
             #self.send(dict(command="ask_session"))    
             return True
-
-
-
 
     def waitSession(self):
         self.progress.setLabelText("Setting up Session...")
@@ -1858,22 +1854,14 @@ class ClientWindow(FormClass, BaseClass):
                 if lenopt != numOpt :
                     options.write(", ")
 
-
-
             options.write(" }")
-
             options.close()
-
 
         #Experimental UPnP Mapper - mappings are removed on app exit
         if self.useUPnP:
             fa.upnp.createPortMapping(self.localIP, self.gamePort, "UDP")
 
-        version_info = message.get('version_info', {})
-        version_info['lobby'] = util.VERSION_STRING
-
-        info = dict(uid=message['uid'], recorder=self.login, featured_mod=message[modkey], game_time=time.time(), version_info=version_info)
-
+        info = dict(uid=message['uid'], recorder=self.login, featured_mod=message[modkey], game_time=time.time())
 
         fa.exe.play(info, self.relayServer.serverPort(), self.gamelogs, arguments, galacticWar)
 
