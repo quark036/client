@@ -307,10 +307,6 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
         for user in listing:
             self.channels[channel].addChatter(user)
 
-
-            # if self.client.GalacticWar.channel and channel == self.client.GalacticWar.channel.name :
-            #     self.client.GalacticWar.channel.addChatter(user)
-
             QtGui.QApplication.processEvents()      #Added by thygrrr to improve application responsiveness on large IRC packets
 
         logger.debug("Added " + str(len(listing)) + " Chatters")
@@ -336,12 +332,6 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
                 self.channels[channel].printAnnouncement("", "black", "+1")
 
             else:
-            #     if channel.lower() == "#uef" or channel.lower() == "#aeon" or channel.lower() == "#cybran" or channel.lower() == "#seraphim" :
-            #         self.client.GalacticWar.createChannel(self, channel)
-            #         self.client.GalacticWar.network_Chat.layout().addWidget(self.client.GalacticWar.channel)
-            #         self.client.GalacticWar.channel.addChatter(user2name(e.source()), True)
-            #         self.client.GalacticWar.channel.resizing()
-
                 self.addTab(self.channels[channel], channel)
 
 
@@ -507,8 +497,3 @@ class ChatWidget(FormClass, BaseClass, SimpleIRCClient):
         self.serverLogArea.appendPlainText("[%s: %s->%s]" % (e.eventtype(), e.source(), e.target()) + "\n".join(e.arguments()))
         if "Nickname is already in use." in "\n".join(e.arguments()) :
             self.connection.nick(self.client.login + "_")
-
-    # def on_ping(self, c,e):
-    #     self.timeout = 0
-    #     self.heartbeatTimer.start(PONG_INTERVAL)
-

@@ -16,10 +16,6 @@
 # GNU General Public License for more details.
 #-------------------------------------------------------------------------------
 
-
-
-
-
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtNetwork import QNetworkRequest
 from chat._avatarWidget import avatarWidget
