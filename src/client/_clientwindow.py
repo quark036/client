@@ -33,6 +33,7 @@ from client import ClientState, MUMBLE_URL, WEBSITE_URL, WIKI_URL, \
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 HEARTBEAT = 20000
 
@@ -997,8 +998,6 @@ class ClientWindow(FormClass, BaseClass):
         self.socket.setSocketOption(QtNetwork.QTcpSocket.KeepAliveOption, 1)
         self.socket.connectToHost(LOBBY_HOST, LOBBY_PORT)
 
-
-
         while (self.socket.state() != QtNetwork.QAbstractSocket.ConnectedState) and self.progress.isVisible():
             QtGui.QApplication.processEvents()
 
@@ -1420,6 +1419,7 @@ class ClientWindow(FormClass, BaseClass):
         block = QtCore.QByteArray()
         out = QtCore.QDataStream(block, QtCore.QIODevice.ReadWrite)
         out.setVersion(QtCore.QDataStream.Qt_4_2)
+        out.setByteOrder(QDataStream.LittleEndian)
 
         out.writeUInt32(0)
         out.writeQString(action)
@@ -1440,6 +1440,7 @@ class ClientWindow(FormClass, BaseClass):
 
         out.device().seek(0)
         out.writeUInt32(block.size() - 4)
+        print(block)
         self.socket.write(block)
         QtGui.QApplication.processEvents()
 
@@ -1452,6 +1453,7 @@ class ClientWindow(FormClass, BaseClass):
         block = QtCore.QByteArray()
         out = QtCore.QDataStream(block, QtCore.QIODevice.ReadWrite)
         out.setVersion(QtCore.QDataStream.Qt_4_2)
+        out.setByteOrder(QDataStream.LittleEndian)
 
         out.writeUInt32(0)
         out.writeQString(action)
@@ -1498,8 +1500,9 @@ class ClientWindow(FormClass, BaseClass):
         out.writeUInt32(block.size() - 4)
         self.bytesToSend = block.size() - 4
 
+        import binascii
+        print(binascii.hexlify(block))
         self.socket.write(block)
-
 
     def serverTimeout(self):
         if self.timeout == 0:
@@ -1512,7 +1515,6 @@ class ClientWindow(FormClass, BaseClass):
             #logger.info("Connection lost - Trying to reconnect.")
             #if not self.reconnect():
                 #logger.error("Unable to reconnect to the server.")
-                
 
     @QtCore.pyqtSlot()
     def readFromServer(self):
@@ -1520,6 +1522,7 @@ class ClientWindow(FormClass, BaseClass):
         #self.timeout = 0
         ins = QtCore.QDataStream(self.socket)
         ins.setVersion(QtCore.QDataStream.Qt_4_2)
+        ins.setByteOrder(QDataStream.LittleEndian)
 
         while ins.atEnd() == False :
             if self.blockSize == 0:
@@ -1530,6 +1533,8 @@ class ClientWindow(FormClass, BaseClass):
                 return
 
             action = ins.readQString()
+            print("incoming")
+            print(action)
             self.process(action, ins)
             self.blockSize = 0
 
