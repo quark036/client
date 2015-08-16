@@ -11,11 +11,12 @@ init:
 
 install:
   - "powershell appveyor\\install.ps1"
-  - "%PYTHON%\\Scripts\\pip.exe install sip cx_Freeze --allow-external sip --allow-unverified sip"
   - "%PYTHON%\\Scripts\\pip.exe install -r requirements.txt"
 
-
 test_script:
-    - "%PYTHON%\\Scripts\\py.test.exe"
+  - "%PYTHON%\\Scripts\\py.test.exe"
+
+on_finish:
+  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build: off
